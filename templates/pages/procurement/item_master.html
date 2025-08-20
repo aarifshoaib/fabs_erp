@@ -141,7 +141,7 @@
             var nextIndex = getNextIndex('#addSupplierRows');
             var template = $('#addSupplierRowTemplate').html();
             template = template.replace(/__INDEX__/g, nextIndex);
-            $('#addSupplierRows').append(template);
+                $('#addSupplierRows').prepend(template);
         });
 
         // Add supplier row (Edit modal)
@@ -149,7 +149,7 @@
             var nextIndex = getNextIndex('#editSupplierRows');
             var template = $('#editSupplierRowTemplate').html();
             template = template.replace(/__INDEX__/g, nextIndex);
-            $('#editSupplierRows').append(template);
+                $('#editSupplierRows').prepend(template);
         });
 
         // Remove supplier row (tracks deleted ids on edit)
