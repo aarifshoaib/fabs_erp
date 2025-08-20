@@ -124,6 +124,191 @@
 
 <script>
     $(document).ready(function () {
+        function getNextIndex(containerSelector) {
+            var nextIndex = 1;
+            var existing = $(containerSelector + ' .supplier-row');
+            if (existing.length) {
+                existing.each(function() {
+                    var idx = parseInt($(this).attr('data-index')) || 0;
+                    if (idx >= nextIndex) nextIndex = idx + 1;
+                });
+            }
+            return nextIndex;
+        }
+
+        // Add supplier row (Add modal)
+        $(document).on('click', '#addSupplierRowBtn', function() {
+            var nextIndex = getNextIndex('#addSupplierRows');
+            var template = $('#addSupplierRowTemplate').html();
+            template = template.replace(/__INDEX__/g, nextIndex);
+            $('#addSupplierRows').append(template);
+        });
+
+        // Add supplier row (Edit modal)
+        $(document).on('click', '#editAddSupplierRowBtn', function() {
+            var nextIndex = getNextIndex('#editSupplierRows');
+            var template = $('#editSupplierRowTemplate').html();
+            template = template.replace(/__INDEX__/g, nextIndex);
+            $('#editSupplierRows').append(template);
+        });
+
+        // Remove supplier row (tracks deleted ids on edit)
+        $(document).on('click', '.remove-supplier-row', function() {
+            var card = $(this).closest('.supplier-row');
+            var idVal = card.find('.supplier-id').val();
+            if (idVal) {
+                var deletedField = $('#supplier_details_deleted');
+                var current = deletedField.val();
+                deletedField.val(current ? current + ',' + idVal : idVal);
+            }
+            card.remove();
+        });
+
+        // When opening Add offcanvas, reset supplier rows (and start with one row)
+        $(document).on('click', '.add-btn', function() {
+            $('#addSupplierRows').empty();
+            var template = $('#addSupplierRowTemplate').html();
+            template = template.replace(/__INDEX__/g, 1);
+            $('#addSupplierRows').append(template);
+        });
+        
+        // Function to populate supplier details in edit form
+        function populateSupplierDetails(details) {
+            const container = document.getElementById('editSupplierRows');
+            container.innerHTML = ''; // Clear existing rows
+
+            if (details && details.length > 0) {
+                details.forEach((sd, index) => {
+                    const newRow = document.createElement('div');
+                    newRow.className = 'card mb-2 supplier-row';
+                    newRow.setAttribute('data-index', index + 1);
+                    
+                    newRow.innerHTML = `
+                        <div class="card-body">
+                            <input type="hidden" name="supplier_details[${index + 1}][id]" class="supplier-id" value="${sd.id || ''}">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label class="form-label">Vendor</label>
+                                    <select class="form-select" name="supplier_details[${index + 1}][vendor_code]">
+                                        <option value="">Select Vendor</option>
+                                        {% for v in vendor_data %}
+                                        <option value="{{ v.vendor_code }}" ${sd.vendor_code === '{{ v.vendor_code }}' ? 'selected' : ''}>
+                                            {{ v.vendor_name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Location</label>
+                                    <select class="form-select" name="supplier_details[${index + 1}][location]">
+                                        <option value="">Select Emirates</option>
+                                        {% for em in emirates_data %}
+                                        <option value="{{ em.base_value }}" ${sd.location === '{{ em.base_value }}' ? 'selected' : ''}>
+                                            {{ em.base_description }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Price</label>
+                                    <input type="number" step="0.01" class="form-control supplier-price-input" 
+                                        name="supplier_details[${index + 1}][price]" value="${sd.price || ''}" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Remarks</label>
+                                    <input type="text" class="form-control" 
+                                        name="supplier_details[${index + 1}][remarks]" value="${sd.remarks || ''}" />
+                                </div>
+                                <div class="col-md-5 mt-2">
+                                    ${sd.document_file_url ? `
+                                        <label class="supplier-doc-name">${sd.document_file_url.split('/').pop()}</label><br />
+                                        <a href="${sd.document_file_url}" target="_blank" class="btn btn-sm btn-primary me-2 supplier-doc-preview" title="View Document">
+                                            <i class="fas fa-eye"></i> Preview
+                                        </a>
+                                        <a href="${sd.document_file_url}" download class="btn btn-sm btn-secondary supplier-doc-download" title="Download Document">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                    ` : `
+                                        <label class="supplier-doc-name">No document uploaded</label><br />
+                                        <a href="#" target="_blank" class="btn btn-sm btn-primary me-2 supplier-doc-preview d-none" title="View Document">
+                                            <i class="fas fa-eye"></i> Preview
+                                        </a>
+                                        <a href="#" download class="btn btn-sm btn-secondary supplier-doc-download d-none" title="Download Document">
+                                            <i class="fas fa-download"></i> Download
+                                        </a>
+                                    `}
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-supplier-row">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(newRow);
+                });
+            } else {
+                // Add one empty row if no data
+                const newRow = document.createElement('div');
+                newRow.className = 'card mb-2 supplier-row';
+                newRow.setAttribute('data-index', 1);
+                
+                newRow.innerHTML = `
+                    <div class="card-body">
+                        <input type="hidden" name="supplier_details[1][id]" class="supplier-id" value="">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <label class="form-label">Vendor</label>
+                                <select class="form-select" name="supplier_details[1][vendor_code]">
+                                    <option value="">Select Vendor</option>
+                                    {% for v in vendor_data %}
+                                    <option value="{{ v.vendor_code }}">{{ v.vendor_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Location</label>
+                                <select class="form-select" name="supplier_details[1][location]">
+                                    <option value="">Select Emirates</option>
+                                    {% for em in emirates_data %}
+                                    <option value="{{ em.base_value }}">{{ em.base_description }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Price</label>
+                                <input type="number" step="0.01" class="form-control supplier-price-input" name="supplier_details[1][price]" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Remarks</label>
+                                <input type="text" class="form-control" name="supplier_details[1][remarks]" />
+                            </div>
+                            <div class="col-md-5 mt-2">
+                                <label class="supplier-doc-name">No document uploaded</label><br />
+                                <a href="#" target="_blank" class="btn btn-sm btn-primary me-2 supplier-doc-preview d-none" title="View Document">
+                                    <i class="fas fa-eye"></i> Preview
+                                </a>
+                                <a href="#" download class="btn btn-sm btn-secondary supplier-doc-download d-none" title="Download Document">
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-supplier-row">Remove</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(newRow);
+            }
+        }
+
+        // Negative checks
+        $(document).on('input', '.supplier-price-input, input[name="rate"]', function() {
+            if ($(this).val() < 0) {
+                alert('Negative values not allowed');
+                $(this).val(0);
+            }
+        });
+        
         // Edit Item Functionality
         $(".edit-item-btn").on("click", function (event) {
             event.preventDefault();
@@ -133,6 +318,9 @@
 
             // Reset all fields
             $("#offcanvas_edit input, #offcanvas_edit select, #offcanvas_edit textarea").val("");
+            // Reset supplier rows and deleted tracker
+            $("#editSupplierRows").empty();
+            $("#supplier_details_deleted").val('');
 
             $.ajax({
                 url: "{% url 'item_master_edit' %}",
@@ -140,24 +328,27 @@
                 data: { 'item_id': itemId },
                 success: function (response) {
                     // Populate the edit form with the response data
-                    $("#item_id").val(response.id);
-                    $("#item_code").val(response.item_code);
-                    $("#item_description").val(response.item_description);
-                    $("#uom").val(response.uom);
-                    $("#is_active").val(response.is_active.toString());
+                    $("#item_id").val(response.data.id);
+                    $("#item_code").val(response.data.item_code);
+                    $("#item_description").val(response.data.item_description);
+                    $("#uom").val(response.data.uom);
+                    $("#is_active").val((response.data.is_active || false).toString());
                     
                     // Populate new fields
-                    $("#material_type").val(response.material_type);
-                    $("#category").val(response.category);
-                    $("#model_no").val(response.model_no);
-                    $("#capacity").val(response.capacity);
-                    $("#size").val(response.size);
-                    $("#thickness").val(response.thickness);
-                    $("#manufacturer").val(response.manufacturer);
-                    $("#country_of_origin").val(response.country_of_origin);
-                    $("#specification_standard").val(response.specification_standard);
-                    $("#rate").val(response.rate);
-                    $("#additional_information").val(response.additional_information);
+                    $("#material_type").val(response.data.material_type);
+                    $("#category").val(response.data.category);
+                    $("#model_no").val(response.data.model_no);
+                    $("#capacity").val(response.data.capacity);
+                    $("#size").val(response.data.size);
+                    $("#thickness").val(response.data.thickness);
+                    $("#manufacturer").val(response.data.manufacturer);
+                    $("#country_of_origin").val(response.data.country_of_origin);
+                    $("#specification_standard").val(response.data.specification_standard);
+                    $("#rate").val(response.data.rate);
+                    $("#additional_information").val(response.data.additional_information);
+
+                    // Populate supplier details
+                    populateSupplierDetails(response.data.supplier_details);
                 },
                 error: function (xhr, status, error) {
                     console.error("Error:", xhr.responseText);
@@ -195,6 +386,92 @@
             });
         });
     });
+</script>
+
+<!-- Supplier Row Templates (Hidden) -->
+<script type="text/template" id="addSupplierRowTemplate">
+    <div class="card mb-2 supplier-row" data-index="__INDEX__">
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Vendor</label>
+                    <select class="form-select" name="supplier_details[__INDEX__][vendor_code]">
+                        <option value="">Select Vendor</option>
+                        {% for v in vendor_data %}
+                        <option value="{{ v.vendor_code }}">{{ v.vendor_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Location</label>
+                    <select class="form-select" name="supplier_details[__INDEX__][location]">
+                        <option value="">Select Emirates</option>
+                        {% for em in emirates_data %}
+                        <option value="{{ em.base_value }}">{{ em.base_description }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Price</label>
+                    <input type="number" step="0.01" class="form-control supplier-price-input" name="supplier_details[__INDEX__][price]" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Remarks</label>
+                    <input type="text" class="form-control" name="supplier_details[__INDEX__][remarks]" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Document</label>
+                    <input type="file" class="form-control" name="supplier_details[__INDEX__][document_file]" />
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-2">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-supplier-row">Remove</button>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/template" id="editSupplierRowTemplate">
+    <div class="card mb-2 supplier-row" data-index="__INDEX__">
+        <div class="card-body">
+            <input type="hidden" name="supplier_details[__INDEX__][id]" class="supplier-id" />
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <label class="form-label">Vendor</label>
+                    <select class="form-select" name="supplier_details[__INDEX__][vendor_code]">
+                        <option value="">Select Vendor</option>
+                        {% for v in vendor_data %}
+                        <option value="{{ v.vendor_code }}">{{ v.vendor_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Location</label>
+                    <select class="form-select" name="supplier_details[__INDEX__][location]">
+                        <option value="">Select Emirates</option>
+                        {% for em in emirates_data %}
+                        <option value="{{ em.base_value }}">{{ em.base_description }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Price</label>
+                    <input type="number" step="0.01" class="form-control supplier-price-input" name="supplier_details[__INDEX__][price]" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Remarks</label>
+                    <input type="text" class="form-control" name="supplier_details[__INDEX__][remarks]" />
+                </div>
+                <div class="col-md-5 mt-2">
+                    <label class="form-label">Document</label>
+                    <input type="file" class="form-control" name="supplier_details[__INDEX__][document_file]" />
+                </div>
+            </div>
+            <div class="d-flex justify-content-end mt-2">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-supplier-row">Remove</button>
+            </div>
+        </div>
+    </div>
 </script>
 
 {% block item_modal %}

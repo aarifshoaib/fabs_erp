@@ -617,33 +617,33 @@ document.addEventListener('DOMContentLoaded', function() {
                                         }
                                         // Sick Leave-Paid calculation
                                         else if (data.description === 'Sick Leave-Paid' && data.eligible_day_type === 'Calendar' && data.payment_type === 'Paid') {
-                                            if (monthsSinceJoin >= 6) {
+                                            // if (monthsSinceJoin >= 6) {
                                                 eligibleDays = data.eligible_days;
-                                            }
+                                            // }
                                         }
                                         // Sick Leave-halfpaid calculation
-                                        else if (data.description === 'Sick Leave-halfpaid' && data.eligible_day_type === 'Calendar' && data.payment_type === 'halfpaid') {
-                                            if (monthsSinceJoin >= 6) {
+                                        else if (data.description === 'Sick Leave-halfpaid' && data.eligible_day_type === 'Calendar' && data.payment_type === 'Half Paid') {
+                                            //if (monthsSinceJoin >= 6) {
                                                 eligibleDays = data.eligible_days;
-                                            }
+                                            //}
                                         }
                                         // Sick Leave-Unpaid calculation
                                         else if (data.description === 'Sick Leave-Unpaid' && data.eligible_day_type === 'Calendar' && data.payment_type === 'Unpaid') {
-                                            if (monthsSinceJoin >= 6) {
+                                            //if (monthsSinceJoin >= 6) {
                                                 eligibleDays = data.eligible_days;
-                                            }
+                                            //}
                                         }
                                         // Maternity Leave calculation Full Paid
                                         else if (data.description === 'Maternity Leave' && data.eligible_day_type === 'Calendar' && data.payment_type === 'Paid') {
-                                            if (monthsSinceJoin >= 12) {
+                                            //if (monthsSinceJoin >= 12) {
                                                 eligibleDays = data.eligible_days;
-                                            }
+                                            //}
                                         }
                                         // Maternity Leave calculation Half Paid
-                                        else if (data.description === 'Maternity Leave-halfpaid' && data.eligible_day_type === 'Calendar' && data.payment_type === 'halfpaid') {
-                                            if (monthsSinceJoin >= 12) {
+                                        else if (data.description === 'Maternity Leave-halfpaid' && data.eligible_day_type === 'Calendar' && data.payment_type === 'Half Paid') {
+                                            //if (monthsSinceJoin >= 12) {
                                                 eligibleDays = data.eligible_days;
-                                            }
+                                            //}
                                         }
                                         // Paternity Leave calculation
                                         else if (data.description === 'Paternity Leave-Unpaid' && data.eligible_day_type === 'Calendar' && data.payment_type === 'Unpaid') {
@@ -663,9 +663,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                         }
                                         // Skill Improvement Leave calculation
                                         else if (data.description === 'Skills Enhancement Leave' && data.eligible_day_type === 'Calendar' && data.payment_type === 'Unpaid') {
-                                            if (monthsSinceJoin >= 24) {
+                                            //if (monthsSinceJoin >= 24) {
                                                 eligibleDays = data.eligible_days;
-                                            }
+                                            //}
                                         }
                                         // Default case for other leave types
                                         else {
@@ -677,12 +677,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                         
                                         if (remainingDays > 0) {
                                             eligibleDaysInput.val(remainingDays);
-                                            if (takenDays > 0) {
-                                                alert(`You have already taken ${takenDays} days of ${data.description} this year. Remaining days: ${remainingDays}`);
-                                            }
+                                            // if (takenDays > 0) {
+                                            //     alert(`You have already taken ${takenDays} days of ${data.description} this year. Remaining days: ${remainingDays}`);
+                                            // }
                                         } else {
                                             eligibleDaysInput.val(0);
-                                            alert(`You have already used all ${eligibleDays} days of ${data.description} for this year.`);
+                                            // alert(`You have already used all ${eligibleDays} days of ${data.description} for this year.`);
                                         }
                                     } else {
                                         eligibleDaysInput.val(0);

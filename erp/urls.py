@@ -338,6 +338,18 @@ urlpatterns = [
     path('procurement/get_mr_items/', procurement.get_mr_items, name='get_mr_items'),
     path('procurement/get_warehouse_stock/', procurement.get_warehouse_stock, name='get_warehouse_stock'),
 
+    path('asset-master/', procurement.asset_master, name='asset_master'),
+    path('asset-master/add/', procurement.asset_master_add, name='asset_master_add'),
+    path('asset-master/edit/', procurement.asset_master_edit, name='asset_master_edit'),
+    path('asset-master/delete/', procurement.asset_master_delete, name='asset_master_delete'),
+
+    path('get_asset_categories/', procurement.get_asset_categories, name='get_asset_categories'),
+    path('get_asset_sub_categories/', procurement.get_asset_sub_categories, name='get_asset_sub_categories'),
+    path('create_asset_sub_category/', procurement.create_asset_sub_category, name='create_asset_sub_category'),
+    path('update_asset_sub_category/', procurement.update_asset_sub_category, name='update_asset_sub_category'),
+    path('delete_asset_sub_category/', procurement.delete_asset_sub_category, name='delete_asset_sub_category'),
+    path('get_asset_groups_by_type/', procurement.get_asset_groups_by_type, name='get_asset_groups_by_type'),
+
     # Notification Master URLs
     path('notification/list/', views.notification_list, name='notification_list'),
     path('notification/create/', views.notification_create, name='notification_create'),

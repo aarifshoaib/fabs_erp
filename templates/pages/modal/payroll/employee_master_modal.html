@@ -43,18 +43,40 @@
                                         <input type="text" name="emp_code" id="emp_code" class="form-control" readonly>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="col-form-label" id="emp_name_passport_label">Employee Name (As per Passport) <span class="text-danger">*</span></label>
                                         <input type="text" name="emp_name_passport" id="emp_name_passport" class="form-control" required>
                                         <div class="invalid-feedback">Please provide the employee's name as per passport.</div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="col-form-label" id="surname_label">Surname <span class="text-danger">*</span></label>
                                         <input type="text" name="surname" id="surname" class="form-control" required>
                                         <div class="invalid-feedback">Please provide a surname.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="col-form-label" id="emp_name_label">Employee status<span class="text-danger">*</span></label>
+                                        <select name="emp_status" id="emp_status" class="form-select">
+                                            <option value="">Select</option>
+                                            {% for statuses in status_data %}
+                                                <option value="{{ statuses.base_value }}">{{ statuses.base_description }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="mb-3">
+                                        <label class="col-form-label" id="emp_name_label">Reason<span class="text-danger">*</span></label>
+                                        <select name="emp_reason" id="emp_reason" class="form-select">
+                                            <option value="">Select</option>
+                                            {% for statuses in pass_data %}
+                                                <option value="{{ statuses.base_value }}">{{ statuses.base_description }}</option>
+                                            {% endfor %}
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="col-md-6">

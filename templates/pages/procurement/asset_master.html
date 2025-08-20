@@ -1,0 +1,230 @@
+{% extends "partials/base.html" %}
+{% block content %}
+<div class="page-wrapper">
+    <div class="content">
+        <div class="row">
+            <div class="col-md-12">
+                {% block pagetitle %}
+                {% include "partials/title.html" with title="Asset Master" %}
+                {% endblock pagetitle %}
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col-sm-4">
+                                <form method="get" id="searchForm">
+                                    <div class="icon-form mb-3 mb-sm-0">
+                                        <span class="form-icon"><i class="ti ti-search"></i></span>
+                                        <input type="text" name="keyword" class="form-control" placeholder="Search Assets" value="{{ keyword }}">
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-sm-8">
+                                <div class="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
+                                    <a href="javascript:void(0);" class="btn btn-primary add-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_add">
+                                        <i class="ti ti-square-rounded-plus me-2"></i>Add Asset
+                                    </a>
+                                    <a href="javascript:void(0);" class="btn btn-secondary ms-2" onclick="openAssetSubCategoryModal()">
+                                        <i class="ti ti-category me-2"></i>Manage Sub-Categories
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive custom-table">
+                            <table class="table datatable">
+                                <thead>
+                                    <tr>
+                                        <th>Account Code</th>
+                                        <th>Type</th>
+                                        <th>Group</th>
+                                        <th>Name</th>
+                                        <th>Amount</th>
+                                        <th>Created On</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for asset in assets %}
+                                    <tr>
+                                        <td>{{ asset.account_code }}</td>
+                                        <td>{{ asset.type }}</td>
+                                        <td>{{ asset.group }}</td>
+                                        <td>{{ asset.name }}</td>
+                                        <td>{{ asset.amount }}</td>
+                                        <td>{{ asset.created_on|date:'Y-m-d' }}</td>
+                                        <td>
+                                            <div class="dropdown table-action">
+                                                <a href="#" class="action-icon" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fa fa-ellipsis-v"></i>
+                                                </a>
+                                                <div class="dropdown-menu dropdown-menu-right">
+                                                    <a class="dropdown-item edit-asset-btn" href="#" data-id="{{ asset.id }}">
+                                                        <i class="ti ti-edit text-blue"></i> Edit
+                                                    </a>
+                                                    <a class="dropdown-item delete-btn" href="#" data-bs-toggle="modal" data-bs-target="#delete_asset" data-asset-id="{{ asset.id }}">
+                                                        <i class="ti ti-trash text-danger"></i> Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                Showing {{ assets.start_index }} to {{ assets.end_index }} of {{ assets.paginator.count }} entries
+                            </div>
+                            <nav>
+                                <ul class="pagination">
+                                    {% if assets.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ current_url }}page={{ assets.previous_page_number }}" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    {% for num in assets.paginator.page_range %}
+                                    <li class="page-item {% if assets.number == num %}active{% endif %}">
+                                        <a class="page-link" href="{{ current_url }}page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endfor %}
+                                    {% if assets.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ current_url }}page={{ assets.next_page_number }}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function () {
+    // Edit Asset button click
+    $(document).on('click', '.edit-asset-btn', function () {
+        var assetId = $(this).data('id');
+        var offcanvasElement = new bootstrap.Offcanvas(document.getElementById("offcanvas_edit"));
+        offcanvasElement.show();
+        // Clear previous values
+        $('#editAssetForm')[0].reset();
+        $('#asset_id').val(assetId);
+        // Fetch asset data
+        $.ajax({
+            url: "{% url 'asset_master_edit' %}",
+            type: "GET",
+            data: { 'asset_id': assetId },
+            success: function (response) {
+                if (response.status === 'success') {
+                    var data = response.data;
+                    $('#edit_account_code').val(data.account_code);
+                    $('#edit_type').val(data.type);
+                    $('#edit_name').val(data.name);
+                    $('#edit_amount').val(data.amount);
+                    // Fetch group options for selected type in parallel
+                    fetchGroupOptions(data.type, data.group);
+                } else {
+                    alert('Error loading asset details.');
+                }
+            },
+            error: function () {
+                alert('Error fetching asset data.');
+            }
+        });
+    });
+
+    // Helper function to fetch group options and set selected value
+    function fetchGroupOptions(type, selectedGroup) {
+        var groupSelect = $('#edit_group');
+        groupSelect.empty();
+        groupSelect.append('<option value="">Select Group</option>');
+        if (type) {
+            $.ajax({
+                url: '/get_asset_groups_by_type/',
+                type: 'GET',
+                data: { type: type },
+                success: function (resp) {
+                    if (resp.success && resp.groups) {
+                        var found = false;
+                        resp.groups.forEach(function (group) {
+                            var selected = (group.value === selectedGroup) ? 'selected' : '';
+                            if (selected) found = true;
+                            groupSelect.append('<option value="' + group.value + '" ' + selected + '>' + group.label + '</option>');
+                        });
+                        // If selectedGroup not found, add it as option
+                        if (!found && selectedGroup) {
+                            groupSelect.append('<option value="' + selectedGroup + '" selected>' + selectedGroup + '</option>');
+                        }
+                        groupSelect.val(selectedGroup);
+                    }
+                }
+            });
+        }
+    }
+
+    // Auto-fetch group options based on type selection (Add Modal)
+    $('select[name="type"]').on('change', function () {
+        var selectedType = $(this).val();
+        var groupSelect = $('select[name="group"]');
+        groupSelect.empty();
+        groupSelect.append('<option value="">Select Group</option>');
+        if (selectedType) {
+            $.ajax({
+                url: '/get_asset_groups_by_type/',
+                type: 'GET',
+                data: { type: selectedType },
+                success: function (response) {
+                    if (response.success && response.groups) {
+                        response.groups.forEach(function (group) {
+                            groupSelect.append('<option value="' + group.value + '">' + group.label + '</option>');
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    // Auto-fetch group options based on type selection (Edit Modal)
+    $('#edit_type').on('change', function () {
+        var selectedType = $(this).val();
+        var groupSelect = $('#edit_group');
+        groupSelect.empty();
+        groupSelect.append('<option value="">Select Group</option>');
+        if (selectedType) {
+            $.ajax({
+                url: '/get_asset_groups_by_type/',
+                type: 'GET',
+                data: { type: selectedType },
+                success: function (response) {
+                    if (response.success && response.groups) {
+                        response.groups.forEach(function (group) {
+                            groupSelect.append('<option value="' + group.value + '">' + group.label + '</option>');
+                        });
+                    }
+                }
+            });
+        }
+    });
+});
+
+function openAssetSubCategoryModal() {
+    var offcanvasElement = new bootstrap.Offcanvas(document.getElementById("offcanvas_sub_category"));
+    offcanvasElement.show();
+}
+</script>
+
+{% block asset_modal %}
+{% include "pages/modal/procurement/asset_master_modal.html" %}
+{% endblock %}
+{% include 'pages/procurement/asset_sub_category_modal.html' %}
+{% endblock content %}
