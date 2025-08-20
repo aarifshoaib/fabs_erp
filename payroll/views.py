@@ -226,6 +226,7 @@ def get_employee_details(request):
             'date_of_rejoin': format_date(employee.date_of_rejoin),
             'qualification': employee.qualification,
             'emp_status': employee.emp_status,
+            'emp_reason': employee.emp_reason,
             'emp_sub_status': employee.emp_sub_status,
             'spouse_name': employee.spouse_name,
             'father_name': employee.father_name,
@@ -449,6 +450,7 @@ def save_employee(request):
         employee.dob = request.POST.get("dob") or None
         employee.emp_sex = request.POST.get("emp_sex")
         employee.emp_status = 'ACTIVE' if not employee_id else employee.emp_status
+        employee.emp_reason = request.POST.get("emp_reason")
         employee.emp_sub_status = request.POST.get("emp_sub_status")
         employee.passport_release = request.POST.get("passport_release")
         employee.release_reason = request.POST.get("release_reason")
@@ -793,8 +795,8 @@ def deactivate_employee(request, employee_id):
         # Get the Employee object
         employee = get_object_or_404(Employee, employee_id=employee_id)
         # Update is_active to False
-        # employee.emp_status = 'inactive'
-        employee.delete()
+        employee.emp_status = 'INACTIVE'
+        # employee.delete()
         messages.success(request, 'Employee deactivated successfully!')
     return redirect('/employee')  # Redirect to the employee list page
 def index(request):

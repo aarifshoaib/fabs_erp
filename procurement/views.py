@@ -72,6 +72,14 @@ def item_master(request):
         is_active='Y',
         comp_code=COMP_CODE
     ).order_by('sequence_id')
+
+    # Vendors and Emirates (location) for supplier details
+    vendor_data = VendorMaster.objects.filter(comp_code=COMP_CODE).order_by('vendor_name')
+    emirates_data = CodeMaster.objects.filter(
+        base_type='EMIRATES',
+        is_active='Y',
+        comp_code=COMP_CODE
+    ).order_by('sequence_id')
     
     # Pagination
     paginator = Paginator(items, PAGINATION_SIZE)
@@ -93,6 +101,8 @@ def item_master(request):
         'country_data': country_data,
         'item_description_data': item_description_data,
         'uom_data': uom_data,
+        'vendor_data': vendor_data,
+        'emirates_data': emirates_data,
     }
     
     return render(request, 'pages/procurement/item_master.html', context)
@@ -129,6 +139,32 @@ def item_master_add(request):
                 additional_information=request.POST.get('additional_information'),
             )
             item.save()
+
+            # Create ItemSupplierDetail entries (multi-entry)
+            supplier_indices = set()
+            for key in request.POST.keys():
+                if key.startswith('supplier_details[') and key.endswith('][vendor_code]'):
+                    index = key.split('[')[1].split(']')[0]
+                    supplier_indices.add(index)
+
+            for idx in sorted(supplier_indices):
+                vendor_code = request.POST.get(f'supplier_details[{idx}][vendor_code]')
+                location = request.POST.get(f'supplier_details[{idx}][location]')
+                price_val = request.POST.get(f'supplier_details[{idx}][price]') or 0
+                remarks = request.POST.get(f'supplier_details[{idx}][remarks]')
+                doc_file = request.FILES.get(f'supplier_details[{idx}][document_file]')
+
+                if vendor_code:
+                    ItemSupplierDetail.objects.create(
+                        comp_code=COMP_CODE,
+                        item_code=item.item_code,
+                        vendor_code=vendor_code,
+                        location=location,
+                        price=Decimal(price_val or 0),
+                        remarks=remarks,
+                        document_file=doc_file,
+                        created_by=request.user.username
+                    )
             return redirect('item_master')
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
@@ -141,6 +177,7 @@ def item_master_edit(request):
         item_id = request.GET.get('item_id')
         try:
             item = get_object_or_404(ItemMaster, id=item_id)
+            supplier_details = ItemSupplierDetail.objects.filter(item_code=item.item_code, comp_code=item.comp_code).order_by('id')
             data = {
                 'id': item.id,
                 'item_code': item.item_code,
@@ -159,8 +196,17 @@ def item_master_edit(request):
                 'specification_standard': item.specification_standard,
                 'rate': float(item.rate),
                 'additional_information': item.additional_information,
+                'supplier_details': [{
+                    'id': sd.id,
+                    'vendor_code': sd.vendor_code,
+                    'vendor_name': VendorMaster.objects.filter(vendor_code=sd.vendor_code, comp_code=item.comp_code).values_list('vendor_name', flat=True).first() or sd.vendor_code,
+                    'location': sd.location or '',
+                    'price': float(sd.price or 0),
+                    'remarks': sd.remarks or '',
+                    'document_file_url': sd.document_file.url if sd.document_file and hasattr(sd.document_file, 'url') else ''
+                } for sd in supplier_details]
             }
-            return JsonResponse(data)
+            return JsonResponse({'data': data})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     
@@ -190,6 +236,67 @@ def item_master_edit(request):
             item.additional_information = request.POST.get('additional_information')
             
             item.save()
+
+            # Handle deletions of supplier details
+            deleted_ids_str = request.POST.get('supplier_details_deleted', '').strip()
+            if deleted_ids_str:
+                try:
+                    del_ids = [int(x) for x in deleted_ids_str.split(',') if x.strip()]
+                    ItemSupplierDetail.objects.filter(id__in=del_ids, item_code=item.item_code, comp_code=item.comp_code).delete()
+                except Exception:
+                    pass
+
+            # Create/Update ItemSupplierDetail entries
+            supplier_indices = set()
+            for key in request.POST.keys():
+                if key.startswith('supplier_details[') and key.endswith('][vendor_code]'):
+                    index = key.split('[')[1].split(']')[0]
+                    supplier_indices.add(index)
+
+            for idx in sorted(supplier_indices):
+                entry_id = request.POST.get(f'supplier_details[{idx}][id]')
+                vendor_code = request.POST.get(f'supplier_details[{idx}][vendor_code]')
+                location = request.POST.get(f'supplier_details[{idx}][location]')
+                price_val = request.POST.get(f'supplier_details[{idx}][price]') or 0
+                remarks = request.POST.get(f'supplier_details[{idx}][remarks]')
+                doc_file = request.FILES.get(f'supplier_details[{idx}][document_file]')
+
+                if not vendor_code:
+                    continue
+
+                if entry_id:
+                    try:
+                        sd = ItemSupplierDetail.objects.get(id=entry_id, item_code=item.item_code, comp_code=item.comp_code)
+                        sd.vendor_code = vendor_code
+                        sd.location = location
+                        sd.price = Decimal(price_val or 0)
+                        sd.remarks = remarks
+                        if doc_file:
+                            sd.document_file = doc_file
+                        sd.updated_by = request.user.username
+                        sd.save()
+                    except ItemSupplierDetail.DoesNotExist:
+                        ItemSupplierDetail.objects.create(
+                            comp_code=item.comp_code,
+                            item_code=item.item_code,
+                            vendor_code=vendor_code,
+                            location=location,
+                            price=Decimal(price_val or 0),
+                            remarks=remarks,
+                            document_file=doc_file,
+                            created_by=request.user.username
+                        )
+                else:
+                    ItemSupplierDetail.objects.create(
+                        comp_code=item.comp_code,
+                        item_code=item.item_code,
+                        vendor_code=vendor_code,
+                        location=location,
+                        price=Decimal(price_val or 0),
+                        remarks=remarks,
+                        document_file=doc_file,
+                        created_by=request.user.username
+                    )
             return redirect('item_master')
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
@@ -2213,3 +2320,208 @@ def vendor_master_delete(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+# Asset Master Views
+PAGINATION_SIZE = 6
+
+def asset_master(request):
+    set_comp_code(request)
+    keyword = request.GET.get('keyword', '')
+    assets = Asset.objects.filter(comp_code = COMP_CODE).order_by('-created_on')
+    if keyword:
+        assets = assets.filter(
+            Q(account_code__icontains=keyword) |
+            Q(type__icontains=keyword) |
+            Q(group__icontains=keyword) |
+            Q(name__icontains=keyword)
+        )
+    paginator = Paginator(assets, PAGINATION_SIZE)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    asset_cat = CodeMaster.objects.filter(base_type='ASSET_CAT', is_active='Y', comp_code=COMP_CODE).order_by('sequence_id')
+    context = {
+        'assets': page_obj,
+        'keyword': keyword,
+        'asset_cat': asset_cat,
+        'current_url': request.path + '?' + '&'.join([f"{k}={v}" for k, v in request.GET.items() if k != 'page']) + '&' if request.GET else '?',
+    }
+    return render(request, 'pages/procurement/asset_master.html', context)
+
+@csrf_exempt
+def asset_master_add(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        type = request.POST.get('type')
+        group = request.POST.get('group')
+        name = request.POST.get('name')
+        amount = request.POST.get('amount')
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT fn_get_seed_no(%s, %s, %s);", [COMP_CODE, None, type])
+                result = cursor.fetchone()
+                acc_code = result[0] if result else None
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+        
+        account_code = acc_code
+        
+        asset = Asset.objects.create(
+            comp_code = COMP_CODE,
+            account_code=account_code,
+            type=type,
+            group=group,
+            name=name,
+            amount=amount
+        )
+        return redirect('/asset-master')
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def asset_master_edit(request):
+    set_comp_code(request)
+    if request.method == 'GET':
+        asset_id = request.GET.get('asset_id')
+        asset = get_object_or_404(Asset, id=asset_id, comp_code = COMP_CODE)
+        data = {
+            'id': asset.id,
+            'account_code': asset.account_code,
+            'type': asset.type,
+            'group': asset.group,
+            'name': asset.name,
+            'amount': str(asset.amount),
+        }
+        return JsonResponse({'status': 'success', 'data': data})
+    elif request.method == 'POST':
+        asset_id = request.POST.get('asset_id')
+        asset = get_object_or_404(Asset, id=asset_id, comp_code = COMP_CODE)
+        asset.account_code = request.POST.get('account_code')
+        asset.type = request.POST.get('type')
+        asset.group = request.POST.get('group')
+        asset.name = request.POST.get('name')
+        asset.amount = request.POST.get('amount')
+        asset.save()
+        return redirect('/asset-master')
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def asset_master_delete(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        asset_id = request.POST.get('asset_id')
+        asset = get_object_or_404(Asset, id=asset_id, comp_code = COMP_CODE)
+        asset.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def get_asset_categories(request):
+    set_comp_code(request)
+    try:
+        # Example: asset categories are stored with base_type='ASSET_CATEGORY'
+        categories = CodeMaster.objects.filter(base_type='ASSET_CAT').values('base_value', 'base_description', 'is_active')
+        data = {
+            'success': True,
+            'categories': [
+                {
+                    'code': c['base_value'],
+                    'name': c['base_description'],
+                    'is_active': c['is_active']
+                } for c in categories
+            ]
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+def get_asset_sub_categories(request):
+    set_comp_code(request)
+    try:
+        parent_code = request.GET.get('parent_code')
+        sub_categories = CodeMaster.objects.filter(comp_code = COMP_CODE, base_type=parent_code).values('base_value', 'base_description', 'is_active')
+        data = {
+            'success': True,
+            'sub_categories': [
+                {
+                    'code': sc['base_value'],
+                    'name': sc['base_description'],
+                    'is_active': sc['is_active']
+                } for sc in sub_categories
+            ]
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+def create_asset_sub_category(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        try:
+            parent_category = request.POST.get('parent_category')
+            code = request.POST.get('sub_category_code')
+            name = request.POST.get('sub_category_description')
+            status = request.POST.get('sub_category_status', 'Y')
+            # Create new sub-category in CodeMaster
+            CodeMaster.objects.create(
+                base_type=parent_category,
+                base_value=code,
+                base_description=name,
+                sequence_id=0,  # Default sequence ID, can be adjusted later
+                comp_code=COMP_CODE,
+                is_active=status
+            )
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@csrf_exempt
+def update_asset_sub_category(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        try:
+            parent_category = request.POST.get('parent_category')
+            code = request.POST.get('sub_category_code')
+            name = request.POST.get('sub_category_description')
+            status = request.POST.get('sub_category_status', 'Y')
+            sub_category = CodeMaster.objects.get(comp_code = COMP_CODE, base_type=parent_category, base_value=code)
+            sub_category.base_description = name
+            sub_category.is_active = status
+            sub_category.save()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@csrf_exempt
+def delete_asset_sub_category(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        try:
+            parent_category = request.POST.get('parent_category')
+            code = request.POST.get('sub_category_code')
+            CodeMaster.objects.filter(comp_code = COMP_CODE, base_type=parent_category, base_value=code).delete()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+@csrf_exempt
+def get_asset_groups_by_type(request):
+    try:
+        asset_type = request.GET.get('type')
+        groups = CodeMaster.objects.filter(base_type=asset_type).values('base_value', 'base_description')
+        data = {
+            'success': True,
+            'groups': [
+                {
+                    'value': g['base_value'],
+                    'label': g['base_description']
+                } for g in groups
+            ]
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})

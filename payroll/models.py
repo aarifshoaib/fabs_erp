@@ -220,6 +220,7 @@ class Employee(models.Model):
     dob = models.DateField(blank=True, null=True)  # Date of birth
     emp_sex = models.CharField(max_length=5)  # Gender
     emp_status = models.CharField(max_length=50, blank=True, null=True)  # Employment status
+    emp_reason = models.CharField(max_length=50, blank=True, null=True)  # Reason for employment status
     emp_sub_status = models.CharField(max_length=50, blank=True, null=True)  # Sub employment status
     passport_release = models.CharField(max_length=100, blank=True, null=True)  # Yes or No
     release_reason = models.CharField(max_length=255, blank=True, null=True)  # Reason for passport release

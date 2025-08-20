@@ -5,7 +5,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-        <form id="addItemForm" method="post" action="{% url 'item_master_add' %}">
+        <form id="addItemForm" method="post" action="{% url 'item_master_add' %}" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="row">
                 <div class="col-md-6">
@@ -131,6 +131,27 @@
                         <textarea class="form-control" name="additional_information" rows="3"></textarea>
                     </div>
                 </div>
+                <div class="col-md-12 mt-3">
+                    <div class="accordion" id="addSupplierAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="addSupplierHeading">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#addSupplierCollapse" aria-expanded="true" aria-controls="addSupplierCollapse">
+                                    Supplier Details
+                                </button>
+                            </h2>
+                            <div id="addSupplierCollapse" class="accordion-collapse collapse show" aria-labelledby="addSupplierHeading">
+                                <div class="accordion-body">
+                                    <div class="d-flex justify-content-end mb-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="addSupplierRowBtn">
+                                            <i class="ti ti-square-rounded-plus me-1"></i>Add Supplier
+                                        </button>
+                                    </div>
+                                    <div id="addSupplierRows"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="text-end mt-3">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="offcanvas">Cancel</button>
@@ -147,9 +168,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body">
-        <form id="editItemForm" method="post" action="{% url 'item_master_edit' %}">
+        <form id="editItemForm" method="post" action="{% url 'item_master_edit' %}" enctype="multipart/form-data">
             {% csrf_token %}
             <input type="hidden" id="item_id" name="item_id">
+            <input type="hidden" id="supplier_details_deleted" name="supplier_details_deleted" value="">
             <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
@@ -274,6 +296,27 @@
                         <textarea class="form-control" id="additional_information" name="additional_information" rows="3"></textarea>
                     </div>
                 </div>
+                <div class="col-md-12 mt-3">
+                    <div class="accordion" id="editSupplierAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="editSupplierHeading">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#editSupplierCollapse" aria-expanded="true" aria-controls="editSupplierCollapse">
+                                    Supplier Details
+                                </button>
+                            </h2>
+                            <div id="editSupplierCollapse" class="accordion-collapse collapse show" aria-labelledby="editSupplierHeading">
+                                <div class="accordion-body">
+                                    <div class="d-flex justify-content-end mb-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="editAddSupplierRowBtn">
+                                            <i class="ti ti-square-rounded-plus me-1"></i>Add Supplier
+                                        </button>
+                                    </div>
+                                    <div id="editSupplierRows"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="text-end mt-3">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="offcanvas">Cancel</button>
@@ -302,14 +345,4 @@
     </div>
 </div> 
 
-<!-- Rate and quantity fields doesnt accept -ve values -->
-<script>
-    $(document).ready(function() {
-        $('input[name="rate"]').on('input', function() {
-            if ($(this).val() < 0) {
-                alert('Rate field doesnt accept -ve values');
-                $(this).val(0);
-            }
-        });
-    });
-</script>
+<!-- Scripts moved to master page (item_master.html) -->

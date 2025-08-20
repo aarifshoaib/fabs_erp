@@ -1,0 +1,268 @@
+<!-- Asset Sub-Category Management Modal -->
+<div class="modal fade" id="assetSubCategoryModal" tabindex="-1" aria-labelledby="assetSubCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assetSubCategoryModalLabel">Manage Asset Sub-Categories</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h6>Existing Categories & Sub-Categories</h6>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm" id="assetCategoryTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Category Code</th>
+                                        <th>Category Name</th>
+                                        <th>Actions</th>
+                                        <th>Status</th>
+                                        <th>Add Sub-Category</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Categories will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Add Sub-Category</h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="assetSubCategoryForm">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="asset_parent_category">Parent Category</label>
+                                        <select class="form-select" id="asset_parent_category" name="parent_category">
+                                            <option value="">Select Category</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="asset_sub_category_code">Sub-Category Code</label>
+                                        <input type="text" class="form-control" id="asset_sub_category_code" name="sub_category_code" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="asset_sub_category_description">Sub-Category Name</label>
+                                        <input type="text" class="form-control" id="asset_sub_category_description" name="sub_category_description" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="asset_sub_category_status">Status</label>
+                                        <select class="form-select" id="asset_sub_category_status" name="sub_category_status">
+                                            <option value="Y">Active</option>
+                                            <option value="N">Inactive</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">Add Sub-Category</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openAssetSubCategoryModal() {
+    loadAssetCategories();
+    const modal = new bootstrap.Modal(document.getElementById('assetSubCategoryModal'));
+    modal.show();
+}
+
+function loadAssetCategories() {
+    $.ajax({
+        url: '/get_asset_categories/',
+        method: 'GET',
+        success: function(data) {
+            if (data.success) {
+                const tableBody = $('#assetCategoryTable tbody');
+                const parentCategorySelect = $('#asset_parent_category');
+                tableBody.empty();
+                parentCategorySelect.empty();
+                parentCategorySelect.append('<option value="">Select Category</option>');
+                data.categories.forEach(category => {
+                    const row = $('<tr>');
+                    row.html(`
+                        <td>${category.code}</td>
+                        <td>${category.name}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info" onclick="viewAssetSubCategories('${category.code}', '${category.name}')">
+                                <i class="fas fa-folder-open"></i> View Sub-Categories
+                            </button>
+                        </td>
+                        <td>
+                            <span class="badge ${category.is_active === 'Y' ? 'bg-success' : 'bg-danger'}">
+                                ${category.is_active === 'Y' ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary" onclick="addAssetSubCategory('${category.code}', '${category.name}')">
+                                <i class="fas fa-plus"></i> Add Sub-Category
+                            </button>
+                        </td>
+                    `);
+                    tableBody.append(row);
+                    parentCategorySelect.append(`<option value="${category.code}">${category.name}</option>`);
+                });
+            } else {
+                alert('Failed to load asset categories');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error:', error);
+            alert('Error loading asset categories');
+        }
+    });
+}
+
+function viewAssetSubCategories(parentCode, parentName) {
+    $('#asset_parent_category').val(parentCode);
+    loadAssetSubCategories(parentCode);
+    alert(`Viewing sub-categories for: ${parentName}`);
+}
+
+function addAssetSubCategory(parentCode, parentName) {
+    $('#assetSubCategoryForm')[0].reset();
+    $('#asset_parent_category').val(parentCode);
+    $('#assetSubCategoryForm .card-header h6').text(`Add Sub-Category for: ${parentName}`);
+    const modal = new bootstrap.Modal(document.getElementById('assetSubCategoryModal'));
+    modal.show();
+}
+
+function loadAssetSubCategories(parentCode) {
+    $.ajax({
+        url: `/get_asset_sub_categories/?parent_code=${parentCode}`,
+        method: 'GET',
+        success: function(data) {
+            if (data.success) {
+                const subCategoryTable = `
+                    <div class="table-responsive mt-3">
+                        <h6>Sub-Categories for: ${parentCode}</h6>
+                        <table class="table table-striped table-sm">
+                            <thead class="table-info">
+                                <tr>
+                                    <th>Sub-Category Code</th>
+                                    <th>Sub-Category Name</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assetSubCategoryTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                $('#assetCategoryTable').after(subCategoryTable);
+                const subCategoryTableBody = $('#assetSubCategoryTableBody');
+                subCategoryTableBody.empty();
+                data.sub_categories.forEach(subCategory => {
+                    const row = $('<tr>');
+                    row.html(`
+                        <td>${subCategory.code}</td>
+                        <td>${subCategory.name}</td>
+                        <td>
+                            <span class="badge ${subCategory.is_active === 'Y' ? 'bg-success' : 'bg-danger'}">
+                                ${subCategory.is_active === 'Y' ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-warning" onclick="editAssetSubCategory('${subCategory.code}', '${subCategory.name}', '${subCategory.is_active}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="deleteAssetSubCategory('${subCategory.code}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `);
+                    subCategoryTableBody.append(row);
+                });
+            } else {
+                alert('Failed to load asset sub-categories');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error:', error);
+            alert('Error loading asset sub-categories');
+        }
+    });
+}
+
+function editAssetSubCategory(code, name, status) {
+    $('#asset_sub_category_code').val(code);
+    $('#asset_sub_category_description').val(name);
+    $('#asset_sub_category_status').val(status);
+    $('#assetSubCategoryForm').attr('data-action', 'update');
+    $('#assetSubCategoryForm button[type="submit"]').text('Update Sub-Category');
+}
+
+function deleteAssetSubCategory(code) {
+    if (confirm('Are you sure you want to delete this sub-category?')) {
+        $.ajax({
+            url: '/delete_asset_sub_category/',
+            method: 'POST',
+            data: {
+                'sub_category_code': code,
+                'parent_category': $('#asset_parent_category').val(),
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(data) {
+                if (data.success) {
+                    alert('Sub-category deleted successfully');
+                    loadAssetSubCategories($('#asset_parent_category').val());
+                } else {
+                    alert(data.message || 'Failed to delete sub-category');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                alert('Error deleting sub-category');
+            }
+        });
+    }
+}
+
+$(document).ready(function() {
+    $('#assetSubCategoryForm').on('submit', function(e) {
+        e.preventDefault();
+        const subCategoryCode = $('#asset_sub_category_code').val().toUpperCase();
+        $('#asset_sub_category_code').val(subCategoryCode);
+        const action = $(this).attr('data-action') || 'create';
+        const url = action === 'update' ? '/update_asset_sub_category/' : '/create_asset_sub_category/';
+        $.ajax({
+            url: url,
+            method: 'POST',
+            data: $(this).serialize(),
+            success: function(data) {
+                if (data.success) {
+                    alert(action === 'update' ? 'Sub-category updated successfully' : 'Sub-category created successfully');
+                    $('#assetSubCategoryForm')[0].reset();
+                    $('#assetSubCategoryForm').removeAttr('data-action');
+                    $('#assetSubCategoryForm button[type="submit"]').text('Add Sub-Category');
+                    $('#assetSubCategoryForm .card-header h6').text('Add Sub-Category');
+                    const parentCode = $('#asset_parent_category').val();
+                    if (parentCode) {
+                        loadAssetSubCategories(parentCode);
+                    }
+                } else {
+                    alert(data.message || 'Failed to save sub-category');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                alert('Error saving sub-category');
+            }
+        });
+    });
+    $('#asset_sub_category_code').on('input', function() {
+        this.value = this.value.toUpperCase();
+    });
+});
+</script>
