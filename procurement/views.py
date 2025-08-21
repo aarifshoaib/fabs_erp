@@ -2016,7 +2016,7 @@ def vendor_master_add(request):
         try:
             # Generate vendor code using fn_get_seed_no
             with connection.cursor() as cursor:
-                cursor.execute("SELECT fn_get_seed_no(%s, %s, %s);", [COMP_CODE, None, 'ITEM'])
+                cursor.execute("SELECT fn_get_seed_no(%s, %s, %s);", [COMP_CODE, None, 'VENDOR'])
                 result = cursor.fetchone()
                 vendor_code = result[0] if result else None
 

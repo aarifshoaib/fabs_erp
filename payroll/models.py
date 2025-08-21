@@ -1263,32 +1263,15 @@ class DOAMaster(models.Model):
     purpose = models.CharField(max_length=200, null=True, blank=True)
     
     # Approval Levels
+    level_1_user = models.CharField(max_length=8000, null=True, blank=True)
     level_1 = models.CharField(max_length=100, null=True, blank=True)
+    level_2_user = models.CharField(max_length=8000, null=True, blank=True)
     level_2 = models.CharField(max_length=100, null=True, blank=True)
+    level_3_user = models.CharField(max_length=8000, null=True, blank=True)
     level_3 = models.CharField(max_length=100, null=True, blank=True)
+    level_4_user = models.CharField(max_length=8000, null=True, blank=True)
     level_4 = models.CharField(max_length=100, null=True, blank=True)
-    
-    # Approval Flow
-    approval_type = models.CharField(max_length=50, null=True, blank=True)  # Type Name
-    app_reference = models.CharField(max_length=50, null=True, blank=True)  # App reference
-    
-    # Workflow Status
-    can_edit = models.BooleanField(default=True)
-    can_view = models.BooleanField(default=True)
-    approval_status = models.CharField(max_length=20, choices=[
-        ('Pending', 'Pending'),
-        ('Approved', 'Approved'),
-        ('Rejected', 'Rejected')
-    ], default='Pending')
-    
-    # Conditions
-    duplicate_condition = models.TextField(null=True, blank=True)  # Condition for duplicate
-    row_condition = models.TextField(null=True, blank=True)  # Add row condition
-    
-    # Origin Details
-    come_up_by = models.CharField(max_length=100, null=True, blank=True)  # How request originates
-    type_app = models.CharField(max_length=50, null=True, blank=True)  # Type of application
-    
+
     # Audit Fields
     created_by = models.CharField(max_length=50, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1297,10 +1280,3 @@ class DOAMaster(models.Model):
     
     # Status
     is_active = models.BooleanField(default=True)
-    
-    def __str__(self):
-        return f"DOA {self.id} - {self.dd} - {self.category}"
-    
-    class Meta:
-        db_table = 'payroll_doa_master'
-        ordering = ['-created_at']
