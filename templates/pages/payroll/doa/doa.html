@@ -43,13 +43,6 @@
                                         <th>Description</th>
                                         <th>Authorised Person</th>
                                         <th>Purpose</th>
-                                        <th>Level 1</th>
-                                        <th>Level 2</th>
-                                        <th>Level 3</th>
-                                        <th>Level 4</th>
-                                        <th>Approval Type</th>
-                                        <th>App Reference</th>
-                                        <th>Approval Status</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
@@ -71,17 +64,6 @@
                                         <td>{{ doa.desy|default:"-" }}</td>
                                         <td>{{ doa.authorised_person|default:"-" }}</td>
                                         <td>{{ doa.purpose|default:"-" }}</td>
-                                        <td>{{ doa.level_1|default:"-" }}</td>
-                                        <td>{{ doa.level_2|default:"-" }}</td>
-                                        <td>{{ doa.level_3|default:"-" }}</td>
-                                        <td>{{ doa.level_4|default:"-" }}</td>
-                                        <td>{{ doa.approval_type|default:"-" }}</td>
-                                        <td>{{ doa.app_reference|default:"-" }}</td>
-                                        <td>
-                                            <span class="badge {% if doa.approval_status == 'Approved' %}bg-success{% elif doa.approval_status == 'Rejected' %}bg-danger{% else %}bg-warning{% endif %}">
-                                                {{ doa.approval_status|default:"Pending" }}
-                                            </span>
-                                        </td>
                                         <td>
                                             <div class="dropdown table-action">
                                                 <a href="#" class="action-icon" data-bs-toggle="dropdown"
@@ -117,28 +99,5 @@
 {% include "pages/modal/payroll/doa-modal.html" %}
 {% endblock %}
 
-<script>
-    $(document).ready(function() {
-        // Initialize DataTable
-        $('.datatable').DataTable({
-            "pageLength": 25,
-            "order": [[0, "desc"]],
-            "responsive": true,
-            "language": {
-                "search": "Search:",
-                "lengthMenu": "Show _MENU_ entries per page",
-                "info": "Showing _START_ to _END_ of _TOTAL_ entries",
-                "infoEmpty": "Showing 0 to 0 of 0 entries",
-                "infoFiltered": "(filtered from _MAX_ total entries)",
-                "paginate": {
-                    "first": "First",
-                    "last": "Last",
-                    "next": "Next",
-                    "previous": "Previous"
-                }
-            }
-        });
-    });
-</script>
 
 {% endblock content %} 

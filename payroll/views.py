@@ -11997,10 +11997,21 @@ def doa_list(request):
     
     # Order by creation date
     doas = query.order_by('-created_at')
+
+    user_master_list = UserMaster.objects.filter(
+    comp_code=COMP_CODE
+        ).exclude(
+            user_id="SYSTEM"
+        ).values("user_id")
+    job = projectMaster.objects.filter(
+        comp_code=COMP_CODE
+    ).values("prj_code", "prj_name")
     
     context = {
         'doas': doas,
         'keyword': keyword,
+        'user_master_list': user_master_list,
+        'job': job,
     }
     
     return render(request, 'pages/payroll/doa/doa.html', context)
@@ -12017,16 +12028,18 @@ def create_doa(request):
                 desy = request.POST.get('desy')
                 authorised_person = request.POST.get('authorised_person')
                 purpose = request.POST.get('purpose')
-                level_1 = request.POST.get('level_1')
-                level_2 = request.POST.get('level_2')
-                level_3 = request.POST.get('level_3')
-                level_4 = request.POST.get('level_4')
-                approval_type = request.POST.get('approval_type')
-                app_reference = request.POST.get('app_reference')
-                duplicate_condition = request.POST.get('duplicate_condition')
-                row_condition = request.POST.get('row_condition')
-                come_up_by = request.POST.get('come_up_by')
-                type_app = request.POST.get('type_app')
+                level_1_user = request.POST.getlist('level_1_user')
+                level_1_user_str = ':'.join(level_1_user)
+                level_2_user = request.POST.getlist('level_2_user')
+                level_2_user_str = ':'.join(level_2_user)
+                level_3_user = request.POST.getlist('level_3_user')
+                level_3_user_str = ':'.join(level_3_user)
+                level_4_user = request.POST.getlist('level_4_user')
+                level_4_user_str = ':'.join(level_4_user)
+                level_1 = request.POST.get('level_1_notes')
+                level_2 = request.POST.get('level_2_notes')
+                level_3 = request.POST.get('level_3_notes')
+                level_4 = request.POST.get('level_4_notes')
                 
                 # Create DOA record
                 doa = DOAMaster.objects.create(
@@ -12041,12 +12054,10 @@ def create_doa(request):
                     level_2=level_2,
                     level_3=level_3,
                     level_4=level_4,
-                    approval_type=approval_type,
-                    app_reference=app_reference,
-                    duplicate_condition=duplicate_condition,
-                    row_condition=row_condition,
-                    come_up_by=come_up_by,
-                    type_app=type_app,
+                    level_1_user=level_1_user_str,
+                    level_2_user=level_2_user_str,
+                    level_3_user=level_3_user_str,
+                    level_4_user=level_4_user_str,
                     created_by=request.user.username if request.user.is_authenticated else 'system',
                     updated_by=request.user.username if request.user.is_authenticated else 'system',
                 )
@@ -12075,16 +12086,14 @@ def edit_doa(request):
                 doa.desy = request.POST.get('desy')
                 doa.authorised_person = request.POST.get('authorised_person')
                 doa.purpose = request.POST.get('purpose')
-                doa.level_1 = request.POST.get('level_1')
-                doa.level_2 = request.POST.get('level_2')
-                doa.level_3 = request.POST.get('level_3')
-                doa.level_4 = request.POST.get('level_4')
-                doa.approval_type = request.POST.get('approval_type')
-                doa.app_reference = request.POST.get('app_reference')
-                doa.duplicate_condition = request.POST.get('duplicate_condition')
-                doa.row_condition = request.POST.get('row_condition')
-                doa.come_up_by = request.POST.get('come_up_by')
-                doa.type_app = request.POST.get('type_app')
+                doa.level_1 = request.POST.get('level_1_notes')
+                doa.level_2 = request.POST.get('level_2_notes')
+                doa.level_3 = request.POST.get('level_3_notes')
+                doa.level_4 = request.POST.get('level_4_notes')
+                doa.level_1_user = ':'.join(request.POST.getlist('level_1_user'))
+                doa.level_2_user = ':'.join(request.POST.getlist('level_2_user'))
+                doa.level_3_user = ':'.join(request.POST.getlist('level_3_user'))
+                doa.level_4_user = ':'.join(request.POST.getlist('level_4_user'))
                 doa.updated_by = request.user.username if request.user.is_authenticated else 'system'
                 doa.save()
                 
@@ -12136,15 +12145,10 @@ def get_doa_details(request):
                 'level_2': doa.level_2,
                 'level_3': doa.level_3,
                 'level_4': doa.level_4,
-                'approval_type': doa.approval_type,
-                'app_reference': doa.app_reference,
-                'duplicate_condition': doa.duplicate_condition,
-                'row_condition': doa.row_condition,
-                'come_up_by': doa.come_up_by,
-                'type_app': doa.type_app,
-                'approval_status': doa.approval_status,
-                'can_edit': doa.can_edit,
-                'can_view': doa.can_view,
+                "level_1_user": doa.level_1_user.split(':') if doa.level_1_user else [],
+                "level_2_user": doa.level_2_user.split(':') if doa.level_2_user else [],
+                "level_3_user": doa.level_3_user.split(':') if doa.level_3_user else [],
+                "level_4_user": doa.level_4_user.split(':') if doa.level_4_user else [],
             }
             
             return JsonResponse(data)
