@@ -413,5 +413,23 @@ class Asset(models.Model):
 
     def __str__(self):
         return f"{self.account_code} - {self.name}"
+    
+class BudgetMaster(models.Model):
+    id = models.AutoField(primary_key=True)
+    comp_code = models.CharField(max_length=15)
+    job_code = models.CharField(max_length=50)
+    created_by = models.CharField(max_length=100, null=True, blank=True)
+    created_on = models.DateTimeField(auto_now_add=True, null=True)
+    modified_by = models.CharField(max_length=100, null=True, blank=True)
+    modified_on = models.DateTimeField(auto_now=True, null=True)
+
+class BudgetEntry(models.Model):
+    id = models.AutoField(primary_key=True)
+    comp_code = models.CharField(max_length=15, null=True, blank=True)
+    budget = models.CharField(max_length=30)
+    account_code = models.CharField(max_length=50)
+    amount = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    created_on = models.DateTimeField(auto_now_add=True)
+    modified_on = models.DateTimeField(auto_now=True)
 
 

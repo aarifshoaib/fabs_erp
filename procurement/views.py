@@ -2525,3 +2525,129 @@ def get_asset_groups_by_type(request):
         return JsonResponse(data)
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
+
+@csrf_exempt
+def budget_master(request):
+    set_comp_code(request)
+    keyword = request.GET.get('keyword', '')
+    budget = BudgetMaster.objects.filter(comp_code = COMP_CODE).order_by('-created_on')
+    if keyword:
+        budget = budget.filter(            
+            Q(job_code__icontains=keyword) 
+        )
+    paginator = Paginator(budget, PAGINATION_SIZE)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    job_code = projectMaster.objects.filter(comp_code=COMP_CODE).values('prj_code', 'prj_name').order_by('prj_code')
+    account_code = Asset.objects.filter(comp_code=COMP_CODE).values('account_code', 'name', 'type', 'group').order_by('account_code')
+    context = {
+        'budgets': page_obj,
+        'keyword': keyword,
+        'job_codes': job_code,
+        'account_code': account_code,
+        'current_url': request.path + '?' + '&'.join([f"{k}={v}" for k, v in request.GET.items() if k != 'page']) + '&' if request.GET else '?',
+    }
+    return render(request, 'pages/procurement/budget_master.html', context)
+
+# Add Budget View
+@csrf_exempt
+def budget_master_add(request):
+    if request.method == 'POST':
+        comp_code = request.session.get('comp_code')
+        job_code = request.POST.get('job_code')
+        budget = BudgetMaster.objects.create(
+            comp_code=comp_code,
+            job_code=job_code,
+            created_by=request.session.get('username')
+        )
+        # Multi-entry
+        account_codes = request.POST.getlist('account_code[]')
+        amounts = request.POST.getlist('amount[]')
+        for code, amt in zip(account_codes, amounts):
+            BudgetEntry.objects.create(
+                budget=budget,
+                account_code=code,
+                amount=amt or 0
+            )
+        return redirect('budget_master')
+
+
+# Edit Budget View
+@csrf_exempt
+def budget_master_edit(request):
+    set_comp_code(request)
+    if request.method == 'GET':
+        budget_id = request.GET.get('budget_id')
+        budget = get_object_or_404(BudgetMaster, id=budget_id, comp_code=COMP_CODE)
+        # Fetch job details (customize as needed)
+        job = projectMaster.objects.filter(prj_code=budget.job_code, comp_code=COMP_CODE).first()
+        job_details = {
+            'job_name': job.prj_name if job else '',
+            'job_description': job.job_description if job and hasattr(job, 'job_description') else '',
+            'timeline_from': job.timeline_from if job and hasattr(job, 'timeline_from') else '',
+            'timeline_to': job.timeline_to if job and hasattr(job, 'timeline_to') else '',
+            'prj_city': job.prj_city if job and hasattr(job, 'prj_city') else '',
+            'manager': job.manager if job and hasattr(job, 'manager') else '',
+            'final_contract_value': job.final_contract_value if job and hasattr(job, 'final_contract_value') else '',
+        }
+        # Fetch budget entries
+        entries = BudgetEntry.objects.filter(budget=budget).values('account_code', 'amount')
+        data = {
+            'id': budget.id,
+            'job_code': budget.job_code,
+            'job_details_html': '', # You can render a template to HTML if needed
+            **job_details,
+            'entries': list(entries),
+        }
+        return JsonResponse({'status': 'success', 'data': data})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def budget_master_update(request):
+    budget_id = request.POST.get('budget_id') or request.GET.get('budget_id')
+    budget = get_object_or_404(BudgetMaster, pk=budget_id)
+    if request.method == 'POST':
+        budget.job_code = request.POST.get('job_code')
+        budget.modified_by = request.session.get('username')
+        budget.save()
+        # Update entries
+        BudgetEntry.objects.filter(budget=budget).delete()
+        account_codes = request.POST.getlist('account_code[]')
+        amounts = request.POST.getlist('amount[]')
+        for code, amt in zip(account_codes, amounts):
+            BudgetEntry.objects.create(
+                budget=budget,
+                account_code=code,
+                amount=amt or 0
+            )
+        return redirect('budget_master')
+
+# Delete Budget View
+@csrf_exempt
+def budget_master_delete(request):
+    budget_id = request.POST.get('budget_id')
+    BudgetMaster.objects.filter(pk=budget_id).delete()
+    return JsonResponse({'status': 'success'})
+
+@csrf_exempt
+def get_job_details(request):
+    set_comp_code(request)
+    job_code = request.GET.get('job_code')
+    try:
+        job = projectMaster.objects.get(prj_code=job_code, comp_code=COMP_CODE)
+        data = {
+            'success': True,
+            'job_name': job.prj_code,
+            'job_description': job.prj_name,
+            'timeline_from': job.timeline_from,
+            'timeline_to': job.timeline_to,
+            'prj_city' : job.prj_city,
+            'manager' : job.manager,
+            'final_contract_value' : job.final_contract_value
+        }
+        return JsonResponse(data)
+    except projectMaster.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Job not found'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)})

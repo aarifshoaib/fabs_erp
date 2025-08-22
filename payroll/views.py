@@ -449,7 +449,7 @@ def save_employee(request):
         employee.surname = request.POST.get("surname")
         employee.dob = request.POST.get("dob") or None
         employee.emp_sex = request.POST.get("emp_sex")
-        employee.emp_status = 'ACTIVE' if not employee_id else employee.emp_status
+        employee.emp_status = 'ACTIVE' if not employee_id else request.POST.get("emp_status")
         employee.emp_reason = request.POST.get("emp_reason")
         employee.emp_sub_status = request.POST.get("emp_sub_status")
         employee.passport_release = request.POST.get("passport_release")
@@ -10269,218 +10269,213 @@ def generate_report(request):
                         p3_param = p3 if p3 else None
                         
                         query = """
-                        WITH emp_list AS (
-                            SELECT DISTINCT emp_code 
-                            FROM payroll_employee
-                            WHERE comp_code = COALESCE(%s, comp_code)
-                            AND emp_code = COALESCE(%s, emp_code)
-                        )
-                        SELECT * FROM (
-                            -- Passport for all employees
-                            SELECT 
-                                e.emp_code,
-                                e.emp_name,
-                                e.prj_code,
-                                e.date_of_join,
-                                e.category,
-                                e.department,
-                                'Passport' AS document_type,
-                                e.passport_details AS doc_number,
-                                CASE 
-                                    WHEN e.passport_document IS NULL THEN 'Missing'
-                                    WHEN e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date THEN 'Expired'
-                                    ELSE 'Available' 
-                                END AS doc_status,
-                                CASE 
-                                    WHEN e.passport_document IS NULL THEN 'Not submitted'
-                                    WHEN e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date THEN 'Document expired'
-                                    ELSE NULL 
-                                END AS remarks,
-                                e.expiry_date AS expiry_date
-                            FROM payroll_employee e
-                            JOIN emp_list l ON e.emp_code = l.emp_code
-                            WHERE e.passport_details IS NOT NULL
-                            AND (%s IS NULL OR %s = 'Passport')
-                            AND (
-                                %s IS NULL 
-                                OR (%s = 'Missing' AND e.passport_document IS NULL)
-                                OR (%s = 'Available' AND e.passport_document IS NOT NULL AND (e.expiry_date IS NULL OR CURRENT_DATE <= e.expiry_date))
-                                OR (%s = 'Expired' AND e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date AND e.passport_document IS NOT NULL)
+                            WITH emp_list AS (
+                                SELECT DISTINCT emp_code 
+                                FROM payroll_employee
+                                WHERE comp_code = COALESCE(%s, comp_code)
+                                AND emp_code = COALESCE(%s, emp_code)
                             )
+                            SELECT * FROM (
+                                -- Passport for all employees
+                                SELECT 
+                                    e.emp_code,
+                                    e.emp_name,
+                                    e.prj_code,
+                                    e.date_of_join,
+                                    e.category,
+                                    e.department,
+                                    'Passport' AS document_type,
+                                    e.passport_details AS doc_number,
+                                    CASE 
+                                        WHEN e.passport_details IS NULL OR TRIM(e.passport_details) = '' OR e.passport_document IS NULL THEN 'Missing'
+                                        WHEN e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date THEN 'Expired'
+                                        ELSE 'Available' 
+                                    END AS doc_status,
+                                    CASE 
+                                        WHEN e.passport_details IS NULL OR TRIM(e.passport_details) = '' OR e.passport_document IS NULL THEN 'Not submitted'
+                                        WHEN e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date THEN 'Document expired'
+                                        ELSE NULL 
+                                    END AS remarks,
+                                    e.expiry_date AS expiry_date
+                                FROM payroll_employee e
+                                JOIN emp_list l ON e.emp_code = l.emp_code
+                                WHERE (%s IS NULL OR %s = 'Passport')
+                                AND (
+                                    %s IS NULL 
+                                    OR (%s = 'Missing' AND (e.passport_details IS NULL OR TRIM(e.passport_details) = '' OR e.passport_document IS NULL))
+                                    OR (%s = 'Available' AND e.passport_details IS NOT NULL AND TRIM(e.passport_details) <> '' AND e.passport_document IS NOT NULL AND (e.expiry_date IS NULL OR CURRENT_DATE <= e.expiry_date))
+                                    OR (%s = 'Expired' AND e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date AND e.passport_document IS NOT NULL)
+                                )
 
-                            UNION ALL
-                            
-                            -- Visa for all employees
-                            SELECT 
-                                e.emp_code,
-                                e.emp_name,
-                                e.prj_code,
-                                e.date_of_join,
-                                e.category,
-                                e.department,
-                                'VISA' AS document_type,
-                                e.visa_no AS doc_number,
-                                CASE 
-                                    WHEN e.visa_document IS NULL THEN 'Missing'
-                                    WHEN e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry THEN 'Expired'
-                                    ELSE 'Available' 
-                                END AS doc_status,
-                                CASE 
-                                    WHEN e.visa_document IS NULL THEN 'Not submitted'
-                                    WHEN e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry THEN 'Document expired'
-                                    ELSE NULL 
-                                END AS remarks,
-                                e.visa_expiry AS expiry_date
-                            FROM payroll_employee e
-                            JOIN emp_list l ON e.emp_code = l.emp_code
-                            WHERE e.visa_no IS NOT NULL
-                            AND (%s IS NULL OR %s = 'Visa')
-                            AND (
-                                %s IS NULL 
-                                OR (%s = 'Missing' AND e.visa_document IS NULL)
-                                OR (%s = 'Available' AND e.visa_document IS NOT NULL AND (e.visa_expiry IS NULL OR CURRENT_DATE <= e.visa_expiry))
-                                OR (%s = 'Expired' AND e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry AND e.visa_document IS NOT NULL)
-                            )
+                                UNION ALL
+                                
+                                -- Visa for all employees
+                                SELECT 
+                                    e.emp_code,
+                                    e.emp_name,
+                                    e.prj_code,
+                                    e.date_of_join,
+                                    e.category,
+                                    e.department,
+                                    'Visa' AS document_type,
+                                    e.visa_no AS doc_number,
+                                    CASE 
+                                        WHEN e.visa_no IS NULL OR TRIM(e.visa_no) = '' OR e.visa_document IS NULL THEN 'Missing'
+                                        WHEN e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry THEN 'Expired'
+                                        ELSE 'Available' 
+                                    END AS doc_status,
+                                    CASE 
+                                        WHEN e.visa_no IS NULL OR TRIM(e.visa_no) = '' OR e.visa_document IS NULL THEN 'Not submitted'
+                                        WHEN e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry THEN 'Document expired'
+                                        ELSE NULL 
+                                    END AS remarks,
+                                    e.visa_expiry AS expiry_date
+                                FROM payroll_employee e
+                                JOIN emp_list l ON e.emp_code = l.emp_code
+                                WHERE (%s IS NULL OR %s = 'Visa')
+                                AND (
+                                    %s IS NULL 
+                                    OR (%s = 'Missing' AND (e.visa_no IS NULL OR TRIM(e.visa_no) = '' OR e.visa_document IS NULL))
+                                    OR (%s = 'Available' AND e.visa_no IS NOT NULL AND TRIM(e.visa_no) <> '' AND e.visa_document IS NOT NULL AND (e.visa_expiry IS NULL OR CURRENT_DATE <= e.visa_expiry))
+                                    OR (%s = 'Expired' AND e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry AND e.visa_document IS NOT NULL)
+                                )
 
-                            UNION ALL
-                            
-                            -- Emirates ID for all employees
-                            SELECT 
-                                e.emp_code,
-                                e.emp_name,
-                                e.prj_code,
-                                e.date_of_join,
-                                e.category,
-                                e.department,
-                                'Emirates ID' AS document_type,
-                                e.emirates_no AS doc_number,
-                                CASE 
-                                    WHEN e.emirate_document IS NULL THEN 'Missing'
-                                    WHEN e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry THEN 'Expired'
-                                    ELSE 'Available' 
-                                END AS doc_status,
-                                CASE 
-                                    WHEN e.emirate_document IS NULL THEN 'Not submitted'
-                                    WHEN e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry THEN 'Document expired'
-                                    ELSE NULL 
-                                END AS remarks,
-                                e.emirate_expiry AS expiry_date
-                            FROM payroll_employee e
-                            JOIN emp_list l ON e.emp_code = l.emp_code
-                            WHERE e.emirates_no IS NOT NULL
-                            AND (%s IS NULL OR %s = 'Emirates ID')
-                            AND (
-                                %s IS NULL 
-                                OR (%s = 'Missing' AND e.emirate_document IS NULL)
-                                OR (%s = 'Available' AND e.emirate_document IS NOT NULL AND (e.emirate_expiry IS NULL OR CURRENT_DATE <= e.emirate_expiry))
-                                OR (%s = 'Expired' AND e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry AND e.emirate_document IS NOT NULL)
-                            )
+                                UNION ALL
+                                
+                                -- Emirates ID for all employees
+                                SELECT 
+                                    e.emp_code,
+                                    e.emp_name,
+                                    e.prj_code,
+                                    e.date_of_join,
+                                    e.category,
+                                    e.department,
+                                    'Emirates ID' AS document_type,
+                                    e.emirates_no AS doc_number,
+                                    CASE 
+                                        WHEN e.emirates_no IS NULL OR TRIM(e.emirates_no) = '' OR e.emirate_document IS NULL THEN 'Missing'
+                                        WHEN e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry THEN 'Expired'
+                                        ELSE 'Available' 
+                                    END AS doc_status,
+                                    CASE 
+                                        WHEN e.emirates_no IS NULL OR TRIM(e.emirates_no) = '' OR e.emirate_document IS NULL THEN 'Not submitted'
+                                        WHEN e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry THEN 'Document expired'
+                                        ELSE NULL 
+                                    END AS remarks,
+                                    e.emirate_expiry AS expiry_date
+                                FROM payroll_employee e
+                                JOIN emp_list l ON e.emp_code = l.emp_code
+                                WHERE (%s IS NULL OR %s = 'Emirates ID')
+                                AND (
+                                    %s IS NULL 
+                                    OR (%s = 'Missing' AND (e.emirates_no IS NULL OR TRIM(e.emirates_no) = '' OR e.emirate_document IS NULL))
+                                    OR (%s = 'Available' AND e.emirates_no IS NOT NULL AND TRIM(e.emirates_no) <> '' AND e.emirate_document IS NOT NULL AND (e.emirate_expiry IS NULL OR CURRENT_DATE <= e.emirate_expiry))
+                                    OR (%s = 'Expired' AND e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry AND e.emirate_document IS NOT NULL)
+                                )
 
-                            UNION ALL
-                            
-                            -- Work Permit for all employees
-                            SELECT 
-                                e.emp_code,
-                                e.emp_name,
-                                e.prj_code,
-                                e.date_of_join,
-                                e.category,
-                                e.department,
-                                'Work Permit' AS document_type,
-                                e.work_permit_number AS doc_number,
-                                CASE 
-                                    WHEN e.work_permit_document IS NULL THEN 'Missing'
-                                    WHEN e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry THEN 'Expired'
-                                    ELSE 'Available' 
-                                END AS doc_status,
-                                CASE 
-                                    WHEN e.work_permit_document IS NULL THEN 'Not submitted'
-                                    WHEN e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry THEN 'Document expired'
-                                    ELSE NULL 
-                                END AS remarks,
-                                e.work_permit_expiry AS expiry_date
-                            FROM payroll_employee e
-                            JOIN emp_list l ON e.emp_code = l.emp_code
-                            WHERE e.work_permit_number IS NOT NULL
-                            AND (%s IS NULL OR %s = 'Work Permit')
-                            AND (
-                                %s IS NULL 
-                                OR (%s = 'Missing' AND e.work_permit_document IS NULL)
-                                OR (%s = 'Available' AND e.work_permit_document IS NOT NULL AND (e.work_permit_expiry IS NULL OR CURRENT_DATE <= e.work_permit_expiry))
-                                OR (%s = 'Expired' AND e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry AND e.work_permit_document IS NOT NULL)
-                            )
+                                UNION ALL
+                                
+                                -- Work Permit for all employees
+                                SELECT 
+                                    e.emp_code,
+                                    e.emp_name,
+                                    e.prj_code,
+                                    e.date_of_join,
+                                    e.category,
+                                    e.department,
+                                    'Work Permit' AS document_type,
+                                    e.work_permit_number AS doc_number,
+                                    CASE 
+                                        WHEN e.work_permit_number IS NULL OR TRIM(e.work_permit_number) = '' OR e.work_permit_document IS NULL THEN 'Missing'
+                                        WHEN e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry THEN 'Expired'
+                                        ELSE 'Available' 
+                                    END AS doc_status,
+                                    CASE 
+                                        WHEN e.work_permit_number IS NULL OR TRIM(e.work_permit_number) = '' OR e.work_permit_document IS NULL THEN 'Not submitted'
+                                        WHEN e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry THEN 'Document expired'
+                                        ELSE NULL 
+                                    END AS remarks,
+                                    e.work_permit_expiry AS expiry_date
+                                FROM payroll_employee e
+                                JOIN emp_list l ON e.emp_code = l.emp_code
+                                WHERE (%s IS NULL OR %s = 'Work Permit')
+                                AND (
+                                    %s IS NULL 
+                                    OR (%s = 'Missing' AND (e.work_permit_number IS NULL OR TRIM(e.work_permit_number) = '' OR e.work_permit_document IS NULL))
+                                    OR (%s = 'Available' AND e.work_permit_number IS NOT NULL AND TRIM(e.work_permit_number) <> '' AND e.work_permit_document IS NOT NULL AND (e.work_permit_expiry IS NULL OR CURRENT_DATE <= e.work_permit_expiry))
+                                    OR (%s = 'Expired' AND e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry AND e.work_permit_document IS NOT NULL)
+                                )
 
-                            UNION ALL
-                            
-                            -- ILOE for all employees
-                            SELECT 
-                                e.emp_code,
-                                e.emp_name,
-                                e.prj_code,
-                                e.date_of_join,
-                                e.category,
-                                e.department,
-                                'ILOE' AS document_type,
-                                e.iloe_no AS doc_number,
-                                CASE 
-                                    WHEN e.iloe_document IS NULL THEN 'Missing'
-                                    WHEN e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry THEN 'Expired'
-                                    ELSE 'Available' 
-                                END AS doc_status,
-                                CASE 
-                                    WHEN e.iloe_document IS NULL THEN 'Not submitted'
-                                    WHEN e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry THEN 'Document expired'
-                                    ELSE NULL 
-                                END AS remarks,
-                                e.iloe_expiry AS expiry_date
-                            FROM payroll_employee e
-                            JOIN emp_list l ON e.emp_code = l.emp_code
-                            WHERE e.iloe_no IS NOT NULL
-                            AND (%s IS NULL OR %s = 'ILOE')
-                            AND (
-                                %s IS NULL 
-                                OR (%s = 'Missing' AND e.iloe_document IS NULL)
-                                OR (%s = 'Available' AND e.iloe_document IS NOT NULL AND (e.iloe_expiry IS NULL OR CURRENT_DATE <= e.iloe_expiry))
-                                OR (%s = 'Expired' AND e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry AND e.iloe_document IS NOT NULL)
-                            )
+                                UNION ALL
+                                
+                                -- ILOE for all employees
+                                SELECT 
+                                    e.emp_code,
+                                    e.emp_name,
+                                    e.prj_code,
+                                    e.date_of_join,
+                                    e.category,
+                                    e.department,
+                                    'ILOE' AS document_type,
+                                    e.iloe_no AS doc_number,
+                                    CASE 
+                                        WHEN e.iloe_no IS NULL OR TRIM(e.iloe_no) = '' OR e.iloe_document IS NULL THEN 'Missing'
+                                        WHEN e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry THEN 'Expired'
+                                        ELSE 'Available' 
+                                    END AS doc_status,
+                                    CASE 
+                                        WHEN e.iloe_no IS NULL OR TRIM(e.iloe_no) = '' OR e.iloe_document IS NULL THEN 'Not submitted'
+                                        WHEN e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry THEN 'Document expired'
+                                        ELSE NULL 
+                                    END AS remarks,
+                                    e.iloe_expiry AS expiry_date
+                                FROM payroll_employee e
+                                JOIN emp_list l ON e.emp_code = l.emp_code
+                                WHERE (%s IS NULL OR %s = 'ILOE')
+                                AND (
+                                    %s IS NULL 
+                                    OR (%s = 'Missing' AND (e.iloe_no IS NULL OR TRIM(e.iloe_no) = '' OR e.iloe_document IS NULL))
+                                    OR (%s = 'Available' AND e.iloe_no IS NOT NULL AND TRIM(e.iloe_no) <> '' AND e.iloe_document IS NOT NULL AND (e.iloe_expiry IS NULL OR CURRENT_DATE <= e.iloe_expiry))
+                                    OR (%s = 'Expired' AND e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry AND e.iloe_document IS NOT NULL)
+                                )
 
-                            UNION ALL
-                            
-                            -- Additional documents
-                            SELECT 
-                                e.emp_code,
-                                e.emp_name,
-                                e.prj_code,
-                                e.date_of_join,
-                                e.category,
-                                e.department,
-                                d.document_type,
-                                d.document_number,
-                                CASE 
-                                    WHEN d.document_file IS NULL THEN 'Missing'
-                                    WHEN d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date THEN 'Expired'
-                                    ELSE 'Available' 
-                                END AS doc_status,
-                                CASE 
-                                    WHEN d.document_file IS NULL THEN 'Not submitted'
-                                    WHEN d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date THEN 'Document expired'
-                                    ELSE NULL 
-                                END AS remarks,
-                                d.expiry_date AS expiry_date
-                            FROM payroll_employee e
-                            JOIN payroll_employeedocument d ON e.emp_code = d.emp_code AND e.comp_code = d.comp_code
-                            JOIN emp_list l ON e.emp_code = l.emp_code
-                            WHERE d.document_number IS NOT NULL
-                            AND (%s IS NULL OR d.document_type = %s)
-                            AND (
-                                %s IS NULL 
-                                OR (%s = 'Missing' AND d.document_file IS NULL)
-                                OR (%s = 'Available' AND d.document_file IS NOT NULL AND (d.expiry_date IS NULL OR CURRENT_DATE <= d.expiry_date))
-                                OR (%s = 'Expired' AND d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date AND d.document_file IS NOT NULL)
-                            )
-                        ) final_result
-                        ORDER BY emp_code, document_type;
-                        """
+                                UNION ALL
+                                
+                                -- Additional documents
+                                SELECT 
+                                    e.emp_code,
+                                    e.emp_name,
+                                    e.prj_code,
+                                    e.date_of_join,
+                                    e.category,
+                                    e.department,
+                                    d.document_type,
+                                    d.document_number,
+                                    CASE 
+                                        WHEN d.document_number IS NULL OR TRIM(d.document_number) = '' OR d.document_file IS NULL THEN 'Missing'
+                                        WHEN d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date THEN 'Expired'
+                                        ELSE 'Available' 
+                                    END AS doc_status,
+                                    CASE 
+                                        WHEN d.document_number IS NULL OR TRIM(d.document_number) = '' OR d.document_file IS NULL THEN 'Not submitted'
+                                        WHEN d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date THEN 'Document expired'
+                                        ELSE NULL 
+                                    END AS remarks,
+                                    d.expiry_date AS expiry_date
+                                FROM payroll_employee e
+                                JOIN payroll_employeedocument d ON e.emp_code = d.emp_code AND e.comp_code = d.comp_code
+                                JOIN emp_list l ON e.emp_code = l.emp_code
+                                WHERE (%s IS NULL OR d.document_type = %s)
+                                AND (
+                                    %s IS NULL 
+                                    OR (%s = 'Missing' AND (d.document_number IS NULL OR TRIM(d.document_number) = '' OR d.document_file IS NULL))
+                                    OR (%s = 'Available' AND d.document_number IS NOT NULL AND TRIM(d.document_number) <> '' AND d.document_file IS NOT NULL AND (d.expiry_date IS NULL OR CURRENT_DATE <= d.expiry_date))
+                                    OR (%s = 'Expired' AND d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date AND d.document_file IS NOT NULL)
+                                )
+                            ) final_result
+                            ORDER BY emp_code, document_type;
+                            """
+
                         
                         # Execute query with proper parameters
                         params = [

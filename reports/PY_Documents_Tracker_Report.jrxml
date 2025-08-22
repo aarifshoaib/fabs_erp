@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.1.1.final using JasperReports Library version 6.1.1  -->
-<!-- 2025-07-21T23:59:46 -->
+<!-- 2025-08-22T18:10:28 -->
 <jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="PY_Salary_Register(Single)for_ZB" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="5a2e14dc-a762-4da1-a981-b70b74af88f9">
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<parameter name="P0" class="java.lang.String"/>
@@ -13,7 +13,7 @@
     SELECT DISTINCT emp_code 
     FROM payroll_employee
     WHERE comp_code = COALESCE($P{P0}, comp_code)
-    AND emp_code = COALESCE($P{P1}, emp_code)
+      AND emp_code = COALESCE($P{P1}, emp_code)
 )
 SELECT * FROM (
     -- Passport for all employees
@@ -27,26 +27,25 @@ SELECT * FROM (
         'Passport' AS document_type,
         e.passport_details AS doc_number,
         CASE 
-            WHEN e.passport_document IS NULL THEN 'Missing'
+            WHEN e.passport_details IS NULL OR TRIM(e.passport_details) = '' OR e.passport_document IS NULL THEN 'Missing'
             WHEN e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date THEN 'Expired'
             ELSE 'Available' 
         END AS doc_status,
         CASE 
-            WHEN e.passport_document IS NULL THEN 'Not submitted'
+            WHEN e.passport_details IS NULL OR TRIM(e.passport_details) = '' OR e.passport_document IS NULL THEN 'Not submitted'
             WHEN e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date THEN 'Document expired'
             ELSE NULL 
         END AS remarks,
         e.expiry_date AS expiry_date
     FROM payroll_employee e
     JOIN emp_list l ON e.emp_code = l.emp_code
-    WHERE e.passport_details IS NOT NULL
-    AND ($P{P2} IS NULL OR $P{P2} = 'Passport')
-    AND (
-        $P{P3} IS NULL 
-        OR ($P{P3} = 'Missing' AND e.passport_document IS NULL)
-        OR ($P{P3} = 'Available' AND e.passport_document IS NOT NULL AND (e.expiry_date IS NULL OR CURRENT_DATE <= e.expiry_date))
-        OR ($P{P3} = 'Expired' AND e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date AND e.passport_document IS NOT NULL)
-    )
+    WHERE ($P{P2} IS NULL OR $P{P2} = 'Passport')
+      AND (
+          $P{P3} IS NULL 
+          OR ($P{P3} = 'Missing' AND (e.passport_details IS NULL OR TRIM(e.passport_details) = '' OR e.passport_document IS NULL))
+          OR ($P{P3} = 'Available' AND e.passport_details IS NOT NULL AND TRIM(e.passport_details) <> '' AND e.passport_document IS NOT NULL AND (e.expiry_date IS NULL OR CURRENT_DATE <= e.expiry_date))
+          OR ($P{P3} = 'Expired' AND e.expiry_date IS NOT NULL AND CURRENT_DATE > e.expiry_date AND e.passport_document IS NOT NULL)
+      )
 
     UNION ALL
     
@@ -58,29 +57,28 @@ SELECT * FROM (
         e.date_of_join,
         e.category,
         e.department,
-        'VISA' AS document_type,
+        'Visa' AS document_type,
         e.visa_no AS doc_number,
         CASE 
-            WHEN e.visa_document IS NULL THEN 'Missing'
+            WHEN e.visa_no IS NULL OR TRIM(e.visa_no) = '' OR e.visa_document IS NULL THEN 'Missing'
             WHEN e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry THEN 'Expired'
             ELSE 'Available' 
         END AS doc_status,
         CASE 
-            WHEN e.visa_document IS NULL THEN 'Not submitted'
+            WHEN e.visa_no IS NULL OR TRIM(e.visa_no) = '' OR e.visa_document IS NULL THEN 'Not submitted'
             WHEN e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry THEN 'Document expired'
             ELSE NULL 
         END AS remarks,
         e.visa_expiry AS expiry_date
     FROM payroll_employee e
     JOIN emp_list l ON e.emp_code = l.emp_code
-    WHERE e.visa_no IS NOT NULL
-    AND ($P{P2} IS NULL OR $P{P2} = 'Visa')
-    AND (
-        $P{P3} IS NULL 
-        OR ($P{P3} = 'Missing' AND e.visa_document IS NULL)
-        OR ($P{P3} = 'Available' AND e.visa_document IS NOT NULL AND (e.visa_expiry IS NULL OR CURRENT_DATE <= e.visa_expiry))
-        OR ($P{P3} = 'Expired' AND e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry AND e.visa_document IS NOT NULL)
-    )
+    WHERE ($P{P2} IS NULL OR $P{P2} = 'Visa')
+      AND (
+          $P{P3} IS NULL 
+          OR ($P{P3} = 'Missing' AND (e.visa_no IS NULL OR TRIM(e.visa_no) = '' OR e.visa_document IS NULL))
+          OR ($P{P3} = 'Available' AND e.visa_no IS NOT NULL AND TRIM(e.visa_no) <> '' AND e.visa_document IS NOT NULL AND (e.visa_expiry IS NULL OR CURRENT_DATE <= e.visa_expiry))
+          OR ($P{P3} = 'Expired' AND e.visa_expiry IS NOT NULL AND CURRENT_DATE > e.visa_expiry AND e.visa_document IS NOT NULL)
+      )
 
     UNION ALL
     
@@ -95,26 +93,25 @@ SELECT * FROM (
         'Emirates ID' AS document_type,
         e.emirates_no AS doc_number,
         CASE 
-            WHEN e.emirate_document IS NULL THEN 'Missing'
+            WHEN e.emirates_no IS NULL OR TRIM(e.emirates_no) = '' OR e.emirate_document IS NULL THEN 'Missing'
             WHEN e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry THEN 'Expired'
             ELSE 'Available' 
         END AS doc_status,
         CASE 
-            WHEN e.emirate_document IS NULL THEN 'Not submitted'
+            WHEN e.emirates_no IS NULL OR TRIM(e.emirates_no) = '' OR e.emirate_document IS NULL THEN 'Not submitted'
             WHEN e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry THEN 'Document expired'
             ELSE NULL 
         END AS remarks,
         e.emirate_expiry AS expiry_date
     FROM payroll_employee e
     JOIN emp_list l ON e.emp_code = l.emp_code
-    WHERE e.emirates_no IS NOT NULL
-    AND ($P{P2} IS NULL OR $P{P2} = 'Emirates ID')
-    AND (
-        $P{P3} IS NULL 
-        OR ($P{P3} = 'Missing' AND e.emirate_document IS NULL)
-        OR ($P{P3} = 'Available' AND e.emirate_document IS NOT NULL AND (e.emirate_expiry IS NULL OR CURRENT_DATE <= e.emirate_expiry))
-        OR ($P{P3} = 'Expired' AND e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry AND e.emirate_document IS NOT NULL)
-    )
+    WHERE ($P{P2} IS NULL OR $P{P2} = 'Emirates ID')
+      AND (
+          $P{P3} IS NULL 
+          OR ($P{P3} = 'Missing' AND (e.emirates_no IS NULL OR TRIM(e.emirates_no) = '' OR e.emirate_document IS NULL))
+          OR ($P{P3} = 'Available' AND e.emirates_no IS NOT NULL AND TRIM(e.emirates_no) <> '' AND e.emirate_document IS NOT NULL AND (e.emirate_expiry IS NULL OR CURRENT_DATE <= e.emirate_expiry))
+          OR ($P{P3} = 'Expired' AND e.emirate_expiry IS NOT NULL AND CURRENT_DATE > e.emirate_expiry AND e.emirate_document IS NOT NULL)
+      )
 
     UNION ALL
     
@@ -129,26 +126,25 @@ SELECT * FROM (
         'Work Permit' AS document_type,
         e.work_permit_number AS doc_number,
         CASE 
-            WHEN e.work_permit_document IS NULL THEN 'Missing'
+            WHEN e.work_permit_number IS NULL OR TRIM(e.work_permit_number) = '' OR e.work_permit_document IS NULL THEN 'Missing'
             WHEN e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry THEN 'Expired'
             ELSE 'Available' 
         END AS doc_status,
         CASE 
-            WHEN e.work_permit_document IS NULL THEN 'Not submitted'
+            WHEN e.work_permit_number IS NULL OR TRIM(e.work_permit_number) = '' OR e.work_permit_document IS NULL THEN 'Not submitted'
             WHEN e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry THEN 'Document expired'
             ELSE NULL 
         END AS remarks,
         e.work_permit_expiry AS expiry_date
     FROM payroll_employee e
     JOIN emp_list l ON e.emp_code = l.emp_code
-    WHERE e.work_permit_number IS NOT NULL
-    AND ($P{P2} IS NULL OR $P{P2} = 'Work Permit')
-    AND (
-        $P{P3} IS NULL 
-        OR ($P{P3} = 'Missing' AND e.work_permit_document IS NULL)
-        OR ($P{P3} = 'Available' AND e.work_permit_document IS NOT NULL AND (e.work_permit_expiry IS NULL OR CURRENT_DATE <= e.work_permit_expiry))
-        OR ($P{P3} = 'Expired' AND e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry AND e.work_permit_document IS NOT NULL)
-    )
+    WHERE ($P{P2} IS NULL OR $P{P2} = 'Work Permit')
+      AND (
+          $P{P3} IS NULL 
+          OR ($P{P3} = 'Missing' AND (e.work_permit_number IS NULL OR TRIM(e.work_permit_number) = '' OR e.work_permit_document IS NULL))
+          OR ($P{P3} = 'Available' AND e.work_permit_number IS NOT NULL AND TRIM(e.work_permit_number) <> '' AND e.work_permit_document IS NOT NULL AND (e.work_permit_expiry IS NULL OR CURRENT_DATE <= e.work_permit_expiry))
+          OR ($P{P3} = 'Expired' AND e.work_permit_expiry IS NOT NULL AND CURRENT_DATE > e.work_permit_expiry AND e.work_permit_document IS NOT NULL)
+      )
 
     UNION ALL
     
@@ -163,26 +159,25 @@ SELECT * FROM (
         'ILOE' AS document_type,
         e.iloe_no AS doc_number,
         CASE 
-            WHEN e.iloe_document IS NULL THEN 'Missing'
+            WHEN e.iloe_no IS NULL OR TRIM(e.iloe_no) = '' OR e.iloe_document IS NULL THEN 'Missing'
             WHEN e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry THEN 'Expired'
             ELSE 'Available' 
         END AS doc_status,
         CASE 
-            WHEN e.iloe_document IS NULL THEN 'Not submitted'
+            WHEN e.iloe_no IS NULL OR TRIM(e.iloe_no) = '' OR e.iloe_document IS NULL THEN 'Not submitted'
             WHEN e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry THEN 'Document expired'
             ELSE NULL 
         END AS remarks,
         e.iloe_expiry AS expiry_date
     FROM payroll_employee e
     JOIN emp_list l ON e.emp_code = l.emp_code
-    WHERE e.iloe_no IS NOT NULL
-    AND ($P{P2} IS NULL OR $P{P2} = 'ILOE')
-    AND (
-        $P{P3} IS NULL 
-        OR ($P{P3} = 'Missing' AND e.iloe_document IS NULL)
-        OR ($P{P3} = 'Available' AND e.iloe_document IS NOT NULL AND (e.iloe_expiry IS NULL OR CURRENT_DATE <= e.iloe_expiry))
-        OR ($P{P3} = 'Expired' AND e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry AND e.iloe_document IS NOT NULL)
-    )
+    WHERE ($P{P2} IS NULL OR $P{P2} = 'ILOE')
+      AND (
+          $P{P3} IS NULL 
+          OR ($P{P3} = 'Missing' AND (e.iloe_no IS NULL OR TRIM(e.iloe_no) = '' OR e.iloe_document IS NULL))
+          OR ($P{P3} = 'Available' AND e.iloe_no IS NOT NULL AND TRIM(e.iloe_no) <> '' AND e.iloe_document IS NOT NULL AND (e.iloe_expiry IS NULL OR CURRENT_DATE <= e.iloe_expiry))
+          OR ($P{P3} = 'Expired' AND e.iloe_expiry IS NOT NULL AND CURRENT_DATE > e.iloe_expiry AND e.iloe_document IS NOT NULL)
+      )
 
     UNION ALL
     
@@ -197,29 +192,30 @@ SELECT * FROM (
         d.document_type,
         d.document_number,
         CASE 
-            WHEN d.document_file IS NULL THEN 'Missing'
+            WHEN d.document_number IS NULL OR TRIM(d.document_number) = '' OR d.document_file IS NULL THEN 'Missing'
             WHEN d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date THEN 'Expired'
             ELSE 'Available' 
         END AS doc_status,
         CASE 
-            WHEN d.document_file IS NULL THEN 'Not submitted'
+            WHEN d.document_number IS NULL OR TRIM(d.document_number) = '' OR d.document_file IS NULL THEN 'Not submitted'
             WHEN d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date THEN 'Document expired'
             ELSE NULL 
         END AS remarks,
         d.expiry_date AS expiry_date
     FROM payroll_employee e
-    JOIN payroll_employeedocument d ON e.emp_code = d.emp_code AND e.comp_code = d.comp_code
+    JOIN payroll_employeedocument d 
+      ON e.emp_code = d.emp_code AND e.comp_code = d.comp_code
     JOIN emp_list l ON e.emp_code = l.emp_code
-    WHERE d.document_number IS NOT NULL
-    AND ($P{P2} IS NULL OR d.document_type = $P{P2})
-    AND (
-        $P{P3} IS NULL 
-        OR ($P{P3} = 'Missing' AND d.document_file IS NULL)
-        OR ($P{P3} = 'Available' AND d.document_file IS NOT NULL AND (d.expiry_date IS NULL OR CURRENT_DATE <= d.expiry_date))
-        OR ($P{P3} = 'Expired' AND d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date AND d.document_file IS NOT NULL)
-    )
+    WHERE ($P{P2} IS NULL OR d.document_type = $P{P2})
+      AND (
+          $P{P3} IS NULL 
+          OR ($P{P3} = 'Missing' AND (d.document_number IS NULL OR TRIM(d.document_number) = '' OR d.document_file IS NULL))
+          OR ($P{P3} = 'Available' AND d.document_number IS NOT NULL AND TRIM(d.document_number) <> '' AND d.document_file IS NOT NULL AND (d.expiry_date IS NULL OR CURRENT_DATE <= d.expiry_date))
+          OR ($P{P3} = 'Expired' AND d.expiry_date IS NOT NULL AND CURRENT_DATE > d.expiry_date AND d.document_file IS NOT NULL)
+      )
 ) final_result
-ORDER BY emp_code, document_type;]]>
+ORDER BY emp_code, document_type;
+]]>
 	</queryString>
 	<field name="emp_code" class="java.lang.String"/>
 	<field name="emp_name" class="java.lang.String"/>
@@ -252,7 +248,7 @@ ORDER BY emp_code, document_type;]]>
 				<textFieldExpression><![CDATA["Documents Tracker Report"]]></textFieldExpression>
 			</textField>
 			<subreport>
-				<reportElement x="0" y="0" width="799" height="40" uuid="c578ce09-2c12-4cd7-8618-520ad23ca865"/>
+				<reportElement x="0" y="0" width="799" height="40" uuid="dd92adbb-33f1-4a11-a331-3232c802d8a6"/>
 				<subreportParameter name="P0">
 					<subreportParameterExpression><![CDATA[$P{P0}]]></subreportParameterExpression>
 				</subreportParameter>
@@ -537,7 +533,7 @@ ORDER BY emp_code, document_type;]]>
 				<textFieldExpression><![CDATA[new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new java.util.Date())]]></textFieldExpression>
 			</textField>
 			<subreport>
-				<reportElement x="0" y="19" width="800" height="15" uuid="9c610416-1f7d-4245-befc-25e43538a51e">
+				<reportElement x="0" y="19" width="800" height="15" uuid="0ab9ce03-c6e7-44e7-8335-ad9d904aef13">
 					<property name="com.jaspersoft.studio.unit.height" value="pixel"/>
 				</reportElement>
 				<subreportParameter name="P0">

@@ -338,6 +338,14 @@ urlpatterns = [
     path('procurement/get_mr_items/', procurement.get_mr_items, name='get_mr_items'),
     path('procurement/get_warehouse_stock/', procurement.get_warehouse_stock, name='get_warehouse_stock'),
 
+    # Budget Master URLs
+    path('budget_master/', procurement.budget_master, name='budget_master'),
+    path('budget_master/add/', procurement.budget_master_add, name='budget_master_add'),
+    path('budget_master/edit/', procurement.budget_master_edit, name='budget_master_edit'),
+    path('budget_master/update/', procurement.budget_master_update, name='budget_master_update'),
+    path('budget_master/delete/', procurement.budget_master_delete, name='budget_master_delete'),
+    path('procurement/get-job-details/', procurement.get_job_details, name='get_job_details'),
+
     path('asset-master/', procurement.asset_master, name='asset_master'),
     path('asset-master/add/', procurement.asset_master_add, name='asset_master_add'),
     path('asset-master/edit/', procurement.asset_master_edit, name='asset_master_edit'),
