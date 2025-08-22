@@ -1,0 +1,213 @@
+{% extends "partials/base.html" %}
+{% block content %}
+
+<div class="page-wrapper">
+    <div class="content">
+        <div class="row">
+            <div class="col-md-12">
+                {% block pagetitle %}
+                {% include "partials/title.html" with title="Budget Master" %}
+                {% endblock pagetitle %}
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col-sm-4">
+                                <form method="get" id="searchForm">
+                                    <div class="icon-form mb-3 mb-sm-0">
+                                        <span class="form-icon"><i class="ti ti-search"></i></span>
+                                        <input type="text" name="keyword" class="form-control" placeholder="Search by Job Code" value="{{ keyword }}">
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-sm-8">
+                                <div class="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
+                                    <a href="javascript:void(0);" class="btn btn-primary add-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_add_budget">
+                                        <i class="ti ti-square-rounded-plus me-2"></i>Add Budget
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive custom-table">
+                            <table class="table datatable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Job Code</th>
+                                        <!-- <th>Created By</th>
+                                        <th>Created On</th>
+                                        <th>Status</th> -->
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for budget in budgets %}
+                                    <tr>
+                                        <td>{{ budget.id }}</td>
+                                        <td>{{ budget.job_code }}</td>
+                                        <!-- <td>{{ budget.created_by }}</td>
+                                        <td>{{ budget.created_on }}</td>
+                                        <td>
+                                            {% if budget.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td> -->
+                                        <td>
+                                            <div class="dropdown table-action">
+                                                <a href="#" class="action-icon" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fa fa-ellipsis-v"></i>
+                                                </a>
+                                                <div class="dropdown-menu dropdown-menu-right">
+                                                    <a class="dropdown-item edit-budget-btn" href="#" data-budget-id="{{ budget.id }}">
+                                                        <i class="ti ti-edit text-blue"></i> Edit
+                                                    </a>
+                                                    <a class="dropdown-item delete-budget-btn" href="#" data-bs-toggle="modal" data-bs-target="#delete_budget" data-budget-id="{{ budget.id }}">
+                                                        <i class="ti ti-trash text-danger"></i> Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                Showing {{ budgets.start_index }} to {{ budgets.end_index }} of {{ budgets.paginator.count }} entries
+                            </div>
+                            <nav>
+                                <ul class="pagination">
+                                    {% if budgets.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ current_url }}page={{ budgets.previous_page_number }}" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    {% for num in budgets.paginator.page_range %}
+                                    <li class="page-item {% if budgets.number == num %}active{% endif %}">
+                                        <a class="page-link" href="{{ current_url }}page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endfor %}
+                                    {% if budgets.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ current_url }}page={{ budgets.next_page_number }}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Include jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script>
+$(document).ready(function () {
+    // Edit Budget Functionality (reference: item master)
+    $(document).on('click', '.edit-budget-btn', function (event) {
+        event.preventDefault();
+        var budgetId = $(this).data('budget-id');
+        var offcanvasElement = new bootstrap.Offcanvas(document.getElementById('offcanvas_edit_budget'));
+        offcanvasElement.show();
+
+        // Reset all fields
+        $('#offcanvas_edit_budget input, #offcanvas_edit_budget select, #offcanvas_edit_budget textarea').val('');
+        // Reset budget entry rows
+        $('#editBudgetTable tbody').empty();
+
+        $.ajax({
+            url: '/budget_master/edit/', // Update to your actual edit GET URL
+            type: 'GET',
+            data: { 'budget_id': budgetId },
+            success: function (response) {
+                // Populate the edit form with the response data
+                $('#edit_budget_id').val(response.data.id);
+                $('#edit_job_code').val(response.data.job_code);
+                // Populate job details
+                if (response.data.job_details_html) {
+                    $('#edit_job_details_area').html(response.data.job_details_html);
+                } else {
+                    let html = '';
+                    if (response.data.job_name) {
+                        html += '<div><strong>Job Code:</strong> ' + response.data.job_name + '</div>';
+                    }
+                    if (response.data.job_description) {
+                        html += '<div><strong>Description:</strong> ' + response.data.job_description + '</div>';
+                    }
+                    if (response.data.timeline_from) {
+                        html += '<div><strong>Timeline From:</strong> ' + response.data.timeline_from + '</div>';
+                    }
+                    if (response.data.timeline_to) {
+                        html += '<div><strong>Timeline To:</strong> ' + response.data.timeline_to + '</div>';
+                    }
+                    if (response.data.prj_city) {
+                        html += '<div><strong>City:</strong> ' + response.data.prj_city + '</div>';
+                    }
+                    if (response.data.manager) {
+                        html += '<div><strong>Manager :</strong> ' + response.data.manager + '</div>';
+                    }
+                    if (response.data.final_contract_value) {
+                        html += '<div><strong>Final Contract Value :</strong> ' + response.data.final_contract_value + '</div>';
+                    }
+                    $('#edit_job_details_area').html(html);
+                }
+                // Populate budget entries
+                if (response.data.entries && response.data.entries.length > 0) {
+                    response.data.entries.forEach(function(entry) {
+                        var accountOptions = `
+                            <option value="">Select</option>
+                            {% for account in account_code %}
+                                <option value="{{ account.account_code }}" ${entry.account_code == '{{ account.account_code }}' ? 'selected' : ''}>{{ account.account_code }} - {{ account.type }} - {{ account.group }} - {{ account.name }}</option>
+                            {% endfor %}
+                        `;
+                        $('#editBudgetTable tbody').append(`
+                            <tr>
+                                <td><select name="account_code[]" class="form-control" required>${accountOptions}</select></td>
+                                <td><input type="number" name="amount[]" class="form-control" min="0" step="0.01" value="${entry.amount}" required></td>
+                                <td><button type="button" class="btn btn-danger remove-budget-entry">Remove</button></td>
+                            </tr>
+                        `);
+                    });
+                } else {
+                    // Add one empty row if no data
+                    var accountOptions = `
+                        <option value="">Select</option>
+                        {% for account in account_code %}
+                            <option value="{{ account.account_code }}">{{ account.account_code }} - {{ account.type }} - {{ account.group }} - {{ account.name }}</option>
+                        {% endfor %}
+                    `;
+                    $('#editBudgetTable tbody').append(`
+                        <tr>
+                            <td><select name="account_code[]" class="form-control" required>${accountOptions}</select></td>
+                            <td><input type="number" name="amount[]" class="form-control" min="0" step="0.01" required></td>
+                            <td><button type="button" class="btn btn-danger remove-budget-entry">Remove</button></td>
+                        </tr>
+                    `);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', xhr.responseText);
+                alert('Error loading budget details. Please try again.');
+            }
+        });
+    });
+});
+</script>
+
+{% block budget_modal %}
+{% include "pages/modal/procurement/budget_master_modal.html" %}
+{% endblock %}
+{% endblock content %}
