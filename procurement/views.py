@@ -2554,10 +2554,9 @@ def budget_master(request):
 @csrf_exempt
 def budget_master_add(request):
     if request.method == 'POST':
-        comp_code = request.session.get('comp_code')
         job_code = request.POST.get('job_code')
         budget = BudgetMaster.objects.create(
-            comp_code=comp_code,
+            comp_code=COMP_CODE,
             job_code=job_code,
             created_by=request.session.get('username')
         )
@@ -2566,6 +2565,7 @@ def budget_master_add(request):
         amounts = request.POST.getlist('amount[]')
         for code, amt in zip(account_codes, amounts):
             BudgetEntry.objects.create(
+                comp_code = COMP_CODE,
                 budget=budget,
                 account_code=code,
                 amount=amt or 0
@@ -2592,7 +2592,7 @@ def budget_master_edit(request):
             'final_contract_value': job.final_contract_value if job and hasattr(job, 'final_contract_value') else '',
         }
         # Fetch budget entries
-        entries = BudgetEntry.objects.filter(budget=budget).values('account_code', 'amount')
+        entries = BudgetEntry.objects.filter(comp_code = COMP_CODE,budget=budget).values('account_code', 'amount')
         data = {
             'id': budget.id,
             'job_code': budget.job_code,
@@ -2605,18 +2605,20 @@ def budget_master_edit(request):
 
 @csrf_exempt
 def budget_master_update(request):
+    set_comp_code(request)
     budget_id = request.POST.get('budget_id') or request.GET.get('budget_id')
-    budget = get_object_or_404(BudgetMaster, pk=budget_id)
+    budget = get_object_or_404(BudgetMaster, pk=budget_id, comp_code=COMP_CODE)
     if request.method == 'POST':
         budget.job_code = request.POST.get('job_code')
         budget.modified_by = request.session.get('username')
         budget.save()
         # Update entries
-        BudgetEntry.objects.filter(budget=budget).delete()
+        BudgetEntry.objects.filter(comp_code = COMP_CODE, budget=budget).delete()
         account_codes = request.POST.getlist('account_code[]')
         amounts = request.POST.getlist('amount[]')
         for code, amt in zip(account_codes, amounts):
             BudgetEntry.objects.create(
+                comp_code = COMP_CODE,
                 budget=budget,
                 account_code=code,
                 amount=amt or 0
@@ -2636,18 +2638,195 @@ def get_job_details(request):
     job_code = request.GET.get('job_code')
     try:
         job = projectMaster.objects.get(prj_code=job_code, comp_code=COMP_CODE)
+        print(job.customer)
         data = {
             'success': True,
-            'job_name': job.prj_code,
-            'job_description': job.prj_name,
+            'job_name': job.prj_name,
+            'job_description': job.project_description,
             'timeline_from': job.timeline_from,
             'timeline_to': job.timeline_to,
-            'prj_city' : job.prj_city,
-            'manager' : job.manager,
-            'final_contract_value' : job.final_contract_value
+            'prj_city': job.prj_city,
+            'manager': job.manager,
+            'final_contract_value': job.final_contract_value,
+            'client_name': job.customer,
+            'customer_id': job.customer,
+            'location': job.prj_city,
+            'section': job.project_type
         }
         return JsonResponse(data)
     except projectMaster.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Job not found'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
+    
+@csrf_exempt
+def indent_master_list(request):
+    set_comp_code(request)
+    keyword = request.GET.get('keyword', '')
+    indents = IndentMaster.objects.filter(comp_code=COMP_CODE).order_by('-created_on')
+    
+    if keyword:
+        indents = indents.filter(
+            Q(indent_code__icontains=keyword)  # Assuming 'indent_code' is the field to filter by
+        )
+    
+    paginator = Paginator(indents, PAGINATION_SIZE)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    job_code = projectMaster.objects.filter(comp_code=COMP_CODE).values('prj_code', 'prj_name').order_by('prj_code')
+    budget_code = BudgetMaster.objects.filter(comp_code=COMP_CODE).values('id','job_code').distinct().order_by('job_code')
+    item_code = ItemMaster.objects.filter(comp_code=COMP_CODE).values('item_code', 'item_description').order_by('item_code')
+
+    context = {
+        'indents': page_obj,
+        'keyword': keyword,
+        'job_codes': job_code,
+        'budget_codes': budget_code,
+        'item_codes': item_code,
+        'current_url': request.path + '?' + '&'.join([f"{k}={v}" for k, v in request.GET.items() if k != 'page']) + '&' if request.GET else '?',
+    }
+    
+    return render(request, 'pages/procurement/indent_master_list.html', context)
+
+
+def indent_creation_add(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        job_no = request.POST.get('job_no')
+        client_name = request.POST.get('client_name')
+        customer_id = request.POST.get('customer_id')
+        job_name = request.POST.get('job_name')
+        location = request.POST.get('location')
+        section = request.POST.get('section')
+        indent_no = request.POST.get('indent_no')
+        indent_date = request.POST.get('indent_date') or None
+        requested_by = request.POST.get('requested_by')
+
+        indent = IndentMaster.objects.create(
+            comp_code = COMP_CODE,
+            job_no=job_no,
+            client_name=client_name,
+            customer_id=customer_id,
+            job_name=job_name,
+            location=location,
+            section=section,
+            indent_no=indent_no,
+            indent_date=indent_date,
+            requested_by=requested_by
+        )
+
+        budget_codes = request.POST.getlist('budget_code[]')
+        item_codes = request.POST.getlist('item_code[]')
+        units = request.POST.getlist('unit[]')
+        quantities = request.POST.getlist('quantity[]')
+        rates = request.POST.getlist('rate[]')
+        amounts = request.POST.getlist('amount[]')
+        remarks = request.POST.getlist('remarks[]')
+
+        for i in range(len(budget_codes)):
+            IndentItem.objects.create(
+                comp_code = COMP_CODE,
+                indent=indent,
+                budget_code=budget_codes[i],
+                item_code=item_codes[i],
+                unit=units[i],
+                quantity=quantities[i],
+                rate=rates[i],
+                amount=amounts[i],
+                remarks=remarks[i] if remarks else ''
+            )
+        return redirect('indent_master_list')
+    return render(request, 'pages/modal/procurement/indent_creation_modal.html')
+
+@csrf_exempt
+def indent_creation_edit(request):
+    set_comp_code(request)
+    if request.method == 'GET':
+        indent_id = request.GET.get('id')
+        indent = get_object_or_404(IndentMaster, id=indent_id, comp_code=COMP_CODE)
+        items = IndentItem.objects.filter(comp_code=COMP_CODE, indent=indent).values(
+            'id', 'budget_code', 'item_code', 'unit', 'quantity', 'rate', 'amount', 'remarks'
+        )
+        data = {
+            'id': indent.id,
+            'job_no': indent.job_no,
+            'client_name': indent.client_name,
+            'customer_id': indent.customer_id,
+            'job_name': indent.job_name,
+            'location': indent.location,
+            'section': indent.section,
+            'indent_no': indent.indent_no,
+            'indent_date': indent.indent_date.strftime('%Y-%m-%d') if indent.indent_date else '',
+            'requested_by': indent.requested_by,
+            'items': list(items),
+        }
+        return JsonResponse({'status': 'success', 'data': data})
+    
+    elif request.method == 'POST':
+        indent_id = request.POST.get('indent_id')
+        indent = get_object_or_404(IndentMaster, id=indent_id, comp_code=COMP_CODE)
+
+        indent.job_no = request.POST.get('job_no')
+        indent.client_name = request.POST.get('client_name')
+        indent.customer_id = request.POST.get('customer_id')
+        indent.job_name = request.POST.get('job_name')
+        indent.location = request.POST.get('location')
+        indent.section = request.POST.get('section')
+        indent.indent_no = request.POST.get('indent_no')
+        indent.indent_date = request.POST.get('indent_date') or None
+        indent.requested_by = request.POST.get('requested_by')
+        indent.save()
+
+        # Update items
+        IndentItem.objects.filter(comp_code=COMP_CODE, indent=indent).delete()
+        
+        budget_codes = request.POST.getlist('budget_code[]')
+        item_codes = request.POST.getlist('item_code[]')
+        units = request.POST.getlist('unit[]')
+        quantities = request.POST.getlist('quantity[]')
+        rates = request.POST.getlist('rate[]')
+        amounts = request.POST.getlist('amount[]')
+        remarks = request.POST.getlist('remarks[]')
+
+        for i in range(len(budget_codes)):
+            IndentItem.objects.create(
+                comp_code=COMP_CODE,
+                indent=indent,
+                budget_code=budget_codes[i],
+                item_code=item_codes[i],
+                unit=units[i],
+                quantity=quantities[i],
+                rate=rates[i],
+                amount=amounts[i],
+                remarks=remarks[i] if remarks else ''
+            )
+        return redirect('indent_master_list')
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def indent_creation_delete(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        indent_id = request.POST.get('indent_id')
+        indent = get_object_or_404(IndentMaster, id=indent_id, comp_code=COMP_CODE)
+        indent.delete()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@csrf_exempt
+def get_item_details(request):
+    set_comp_code(request)
+    if request.method == 'GET':
+        item_code = request.GET.get('item_code')
+        try:
+            item = get_object_or_404(ItemMaster, item_code=item_code, comp_code = COMP_CODE)
+            min_price = ItemSupplierDetail.objects.filter(comp_code=COMP_CODE, item_code=item_code).aggregate(min_price=models.Min('price'))['min_price']
+            return JsonResponse({
+                'status': 'success',
+                'uom': item.uom,
+                'rate': float(min_price) if min_price else float(item.rate) if hasattr(item, 'rate') else ''
+            })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})

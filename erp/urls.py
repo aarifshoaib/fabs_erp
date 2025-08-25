@@ -245,6 +245,12 @@ urlpatterns = [
     path('employee_pp/delete/', views.employee_pp_delete, name='employee_pp_delete'),
     path('get_employee_details_by_code/', views.get_employee_details_by_code, name='get_employee_details_by_code'),
 
+    path('employee-pp-renewal/', views.employee_pp_renewal_list, name='employee_pp_renewal_list'),
+    path('employee-pp-renewal/create/', views.employee_pp_renewal_create, name='employee_pp_renewal_create'),
+    path('employee-pp-renewal/edit/', views.employee_pp_renewal_edit, name='employee_pp_renewal_edit'),
+    path('employee-pp-renewal/update/', views.employee_pp_renewal_update, name='employee_pp_renewal_update'),
+    path('employee-pp-renewal/delete/', views.employee_pp_renewal_delete, name='employee_pp_renewal_delete'),
+
     path('duty_roster/', views.duty_roster, name='duty_roster'),
 
     #enquiries
@@ -337,6 +343,12 @@ urlpatterns = [
     path('procurement/material_issue_delete/', procurement.material_issue_delete, name='material_issue_delete'),
     path('procurement/get_mr_items/', procurement.get_mr_items, name='get_mr_items'),
     path('procurement/get_warehouse_stock/', procurement.get_warehouse_stock, name='get_warehouse_stock'),
+
+    path('indent_master_list/', procurement.indent_master_list, name='indent_master_list'),
+    path('indent_creation/add/', procurement.indent_creation_add, name='indent_creation_add'),
+    path('indent_creation/edit/', procurement.indent_creation_edit, name='indent_creation_edit'),
+    path('indent_creation/delete/', procurement.indent_creation_delete, name='indent_creation_delete'),
+    path('procurement/get_item_details/', procurement.get_item_details, name='get_item_details'),
 
     # Budget Master URLs
     path('budget_master/', procurement.budget_master, name='budget_master'),

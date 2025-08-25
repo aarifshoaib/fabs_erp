@@ -1108,6 +1108,71 @@ class EmployeePPDocuments(models.Model):
         return f"{self.document_name} ({self.employee_pp_id})"
 
 
+class EmployeePPRenewalDetails(models.Model):
+    id = models.AutoField(primary_key=True)
+    comp_code = models.CharField(max_length=50, null=True, blank=True)
+    pp_number = models.CharField(max_length=50)
+    emp_code = models.CharField(max_length=50)
+    name = models.CharField(max_length=255)
+    in_outside = models.CharField(max_length=50, null=True, blank=True)
+    status = models.CharField(max_length=100, null=True, blank=True)
+    sub_status = models.CharField(max_length=100, null=True, blank=True)
+    work_location = models.CharField(max_length=255, null=True, blank=True)
+    doj = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=10, null=True, blank=True)
+    designation = models.CharField(max_length=255, null=True, blank=True)
+    nationality = models.CharField(max_length=100, null=True, blank=True)
+    pp_control = models.CharField(max_length=100, null=True, blank=True)
+    no_of_days = models.CharField(max_length=100, null=True, blank=True)
+    fine_amount = models.CharField(max_length=100, null=True, blank=True)
+    date_of_landing = models.DateField(null=True, blank=True)
+
+    medical = models.CharField(max_length=8000, null=True, blank=True)
+    medical_result_date = models.CharField(max_length=8000, null=True, blank=True)
+    remedical_result_date = models.CharField(max_length=8000, null=True, blank=True)
+    eid = models.CharField(max_length=8000, null=True, blank=True)
+    rp_stamping = models.CharField(max_length=8000, null=True, blank=True)
+    tawjeeh_payment = models.CharField(max_length=8000, null=True, blank=True)
+    tawjeeh_class = models.CharField(max_length=8000, null=True, blank=True)
+    iloe_status = models.CharField(max_length=8000, null=True, blank=True)
+    iloe_date = models.CharField(max_length=8000, null=True, blank=True)
+    tawjeeh_date = models.CharField(max_length=8000, null=True, blank=True)
+    rp_stamping_date = models.CharField(max_length=8000, null=True, blank=True)
+    eid_date = models.CharField(max_length=8000, null=True, blank=True)
+    eid_remarks = models.CharField(max_length=8000, null=True, blank=True)
+    # New ILOE fields
+    iloe_number = models.CharField(max_length=8000, null=True, blank=True)
+    iloe_inception_date = models.CharField(max_length=8000, null=True, blank=True)
+    iloe_expiry_date = models.CharField(max_length=8000, null=True, blank=True)
+    
+    # Health Insurance fields
+    insurance_status = models.CharField(max_length=8000, null=True, blank=True)
+    insurance_card_number = models.CharField(max_length=8000, null=True, blank=True)
+    insurance_expiry_date = models.CharField(max_length=8000, null=True, blank=True)
+    created_by = models.CharField(max_length=8000, null=True, blank=True)
+    created_on = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    modified_by = models.CharField(max_length=8000, null=True, blank=True)
+    modified_on = models.DateTimeField(auto_now=True, null=True, blank=True)
+
+    def __str__(self):
+        return f"Employee PP Renewal {self.id} - {self.name}"
+
+
+class EmployeePPRenewalDocuments(models.Model):
+    comp_code = models.CharField(max_length=15)
+    document_id = models.BigAutoField(primary_key=True)
+    employee_pp_renewal_id = models.IntegerField()  # Reference to EmployeePPRenewalDetails.id
+    document_name = models.CharField(max_length=255)
+    document_file = models.FileField(upload_to=employee_pp_document_path, blank=True, null=True)
+    created_by = models.BigIntegerField(null=True, blank=True)
+    created_on = models.DateTimeField(auto_now_add=True)
+    modified_by = models.BigIntegerField(null=True, blank=True)
+    modified_on = models.DateTimeField(auto_now=True, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.document_name} ({self.employee_pp_renewal_id})"
+
+
 class MRFMaster(models.Model):
     id = models.AutoField(primary_key=True)
     comp_code = models.CharField(max_length=50, null=True, blank=True)

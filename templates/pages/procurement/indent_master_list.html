@@ -1,0 +1,322 @@
+{% extends "partials/base.html" %}
+{% block content %}
+<div class="page-wrapper">
+    <div class="content" style="overflow-y: auto; height: 90vh;">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <div class="row align-items-center">
+                        <div class="col-8">
+                            <h4 class="page-title">Indent Master<span class="count-title">{{ indents|length }}</span></h4>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="head-icons">
+                                <a href="" data-bs-toggle="tooltip" data-bs-placement="top" title="Refresh"><i class="ti ti-refresh-dot"></i></a>
+                                <a href="javascript:void(0);" data-bs-toggle="tooltip" data-bs-placement="top" title="Collapse" id="collapse-header"><i class="ti ti-chevrons-up"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /Page Header -->
+                {% if messages %}
+                <div class="alert alert-danger" id="alert-message">
+                    {% for message in messages %}
+                        {{ message }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="card">
+                    <div class="card-header">
+                        <!-- Search -->
+                        <div class="row align-items-center">
+                            <div class="col-sm-4">
+                                <form method="get">
+                                    <div class="icon-form mb-3 mb-sm-0">
+                                        <span class="form-icon"><i class="ti ti-search"></i></span>
+                                        <input type="text" name="keyword" class="form-control" placeholder="Search Indent" value="{{ keyword }}">
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-sm-8">
+                                <div class="d-flex align-items-center flex-wrap row-gap-2 justify-content-sm-end">
+                                    <!-- Add Indent Offcanvas Button -->
+                                    <a href="javascript:void(0);" class="btn btn-primary add-btn" data-bs-toggle="offcanvas" data-bs-target="#offcanvas_add">
+                                        <i class="ti ti-square-rounded-plus me-2"></i>Add Indent
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /Search -->
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive custom-table">
+                            <table class="table datatable">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Indent No</th>
+                                        <th>Job No</th>
+                                        <th>Client Name</th>
+                                        <th>Requested By</th>
+                                        <th>Indent Date</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for indent in indents %}
+                                    <tr>
+                                        <td>{{ indent.indent_no }}</td>
+                                        <td>{{ indent.job_no }}</td>
+                                        <td>{{ indent.client_name }}</td>
+                                        <td>{{ indent.requested_by }}</td>
+                                        <td>{{ indent.indent_date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <div class="dropdown table-action">
+                                                <a href="#" class="action-icon" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fa fa-ellipsis-v"></i>
+                                                </a>
+                                                <div class="dropdown-menu dropdown-menu-right">
+                                                    <!-- <a class="dropdown-item view-indent-btn" href="javascript:void(0);" data-id="{{ indent.id }}">
+                                                        <i class="ti ti-eye text-info"></i> View
+                                                    </a> -->
+                                                    <a class="dropdown-item edit-indent-btn" href="javascript:void(0);" data-id="{{ indent.id }}">
+                                                        <i class="ti ti-edit text-blue"></i> Edit
+                                                    </a>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#delete_indent_{{ indent.id }}">
+                                                        <i class="ti ti-trash text-danger"></i> Delete
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!-- Delete Indent Modal -->
+                                    <div class="modal fade" id="delete_indent_{{ indent.id }}" tabindex="-1" aria-labelledby="deleteIndentModalLabel" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="deleteIndentModalLabel">Delete Indent</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                                                        <i class="ti ti-x"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are you sure you want to delete this indent?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <form method="post" action="">
+                                                        {% csrf_token %}
+                                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- /Delete Indent Modal -->
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% if indents.has_other_pages %}
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div class="showing-entries">
+                                <span>Showing {{ indents.start_index }} to {{ indents.end_index }} of {{ indents.paginator.count }} entries</span>
+                            </div>
+                            <ul class="pagination">
+                                {% if indents.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?keyword={{ keyword }}&page={{ indents.previous_page_number }}">Previous</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#">Previous</a>
+                                </li>
+                                {% endif %}
+                                {% if indents.number > 4 %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?keyword={{ keyword }}&page=1">1</a>
+                                </li>
+                                {% if indents.number > 5 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                                {% endif %}
+                                {% for page in indents.paginator.page_range %}
+                                    {% if page >= indents.number|add:-3 and page <= indents.number|add:3 %}
+                                        <li class="page-item {% if page == indents.number %} active {% endif %}">
+                                            {% if page == indents.number %}
+                                            <span class="page-link">{{ page }}</span>
+                                            {% else %}
+                                            <a class="page-link" href="?keyword={{ keyword }}&page={{ page }}">{{ page }}</a>
+                                            {% endif %}
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                {% if indents.number < indents.paginator.num_pages|add:-3 %}
+                                    {% if indents.number < indents.paginator.num_pages|add:-4 %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                    {% endif %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?keyword={{ keyword }}&page={{ indents.paginator.num_pages }}">{{ indents.paginator.num_pages }}</a>
+                                    </li>
+                                {% endif %}
+                                {% if indents.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?keyword={{ keyword }}&page={{ indents.next_page_number }}">Next</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#">Next</a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function () {
+    $(document).on('click', '.edit-indent-btn', function (event) {
+        event.preventDefault();
+        var indentId = $(this).data('id');
+        var offcanvasElement = new bootstrap.Offcanvas(document.getElementById('offcanvas_edit'));
+        offcanvasElement.show();
+
+        // Reset all fields
+        $('#offcanvas_edit input, #offcanvas_edit select, #offcanvas_edit textarea').val('');
+        $('#editIndentItemsTable tbody').empty();
+        
+        // Initialize select2 for the edit modal
+        $('#offcanvas_edit .select2').select2();
+
+        $.ajax({
+            url: "{% url 'indent_creation_edit' %}",
+            type: 'GET',
+            data: { 'id': indentId },
+            success: function (response) {
+                console.log(response);
+                $('#edit_indent_id').val(response.data.id);
+                $('#edit_job_no').val(response.data.job_no);
+                $('#edit_client_name').val(response.data.client_name);
+                $('#edit_customer_id').val(response.data.customer_id);
+                $('#edit_job_name').val(response.data.job_name);
+                $('#edit_location').val(response.data.location);
+                $('#edit_section').val(response.data.section);
+                $('#edit_indent_no').val(response.data.indent_no);
+                $('#edit_indent_date').val(response.data.indent_date);
+                $('#edit_requested_by').val(response.data.requested_by);
+                
+                // Manually fetch job details if job_no exists
+                if (response.data.job_no) {
+                    $.ajax({
+                        url: "{% url 'get_job_details' %}",
+                        type: "GET",
+                        data: { job_code: response.data.job_no },
+                        success: function(jobResponse) {
+                            if (jobResponse.success) {
+                                $('#edit_client_name').val(jobResponse.client_name || '');
+                                $('#edit_customer_id').val(jobResponse.customer_id || '');
+                                $('#edit_job_name').val(jobResponse.job_name || '');
+                                $('#edit_location').val(jobResponse.location || '');
+                                $('#edit_section').val(jobResponse.section || '');
+                            }
+                        }
+                    });
+                }
+
+                (response.data.items.length ? response.data.items : [{}]).forEach(function (item) {
+                    $('#editIndentItemsTable tbody').append(`
+                        <tr>
+                            <td>
+                                <select name="budget_code[]" class="form-control budget-code-select" required>
+                                    <option value="">Select Budget Code</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select name="item_code[]" class="form-control item-code-select" required>
+                                    <option value="">Select Item Code</option>
+                                </select>
+                            </td>
+                            <td><input type="text" name="unit[]" class="form-control" value="${item.unit || ''}" required></td>
+                            <td><input type="number" name="quantity[]" class="form-control" min="0" step="0.01" value="${item.quantity || ''}" required></td>
+                            <td><input type="number" name="rate[]" class="form-control" min="0" step="0.01" value="${item.rate || ''}" required></td>
+                            <td><input type="number" name="amount[]" class="form-control" min="0" step="0.01" value="${item.amount || ''}" required></td>
+                            <td><input type="text" name="remarks[]" class="form-control" value="${item.remarks || ''}"></td>
+                            <td>
+                                <button type="button" class="btn btn-danger remove-indent-entry">Remove</button>
+                            </td>
+                        </tr>
+                    `);
+                    
+                    // Now populate the options for this row
+                    var $row = $('#editIndentItemsTable tbody tr:last');
+                    var $budgetSelect = $row.find('.budget-code-select');
+                    var $itemSelect = $row.find('.item-code-select');
+                    
+                    // Populate budget options
+                    var budgetCodes = JSON.parse('{{ budget_codes|escapejs }}');
+                    budgetCodes.forEach(function(budget) {
+                        var selected = (item.budget_code == budget.id) ? 'selected' : '';
+                        $budgetSelect.append('<option value="' + budget.id + '" ' + selected + '>' + budget.job_code + '</option>');
+                    });
+                    
+                    // Populate item options
+                    var itemCodes = JSON.parse('{{ item_codes|escapejs }}');
+                    itemCodes.forEach(function(itemOption) {
+                        var selected = (item.item_code == itemOption.item_code) ? 'selected' : '';
+                        $itemSelect.append('<option value="' + itemOption.item_code + '" ' + selected + '>' + itemOption.item_code + ' - ' + itemOption.item_description + '</option>');
+                    });
+                });
+                
+                // Initialize select2 for the new dropdowns
+                $('#offcanvas_edit .budget-code-select, #offcanvas_edit .item-code-select').select2();
+                
+                // Re-attach change event handlers for the newly created rows
+                $('#offcanvas_edit .item-code-select').off('change').on('change', function() {
+                    var $row = $(this).closest('tr');
+                    var itemCode = $(this).val();
+                    if (itemCode) {
+                        $.ajax({
+                            url: "{% url 'get_item_details' %}",
+                            type: "GET",
+                            data: { item_code: itemCode },
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    $row.find('input[name="unit[]"]').val(response.uom || '');
+                                    $row.find('input[name="rate[]"]').val(response.rate || '');
+                                    $row.find('input[name="quantity[]"]').val('');
+                                    $row.find('input[name="amount[]"]').val('');
+                                }
+                            }
+                        });
+                    } else {
+                        $row.find('input[name="unit[]"], input[name="rate[]"], input[name="quantity[]"], input[name="amount[]"]').val('');
+                    }
+                });
+                
+                // Re-attach calculation event handlers
+                $('#offcanvas_edit input[name="quantity[]"], #offcanvas_edit input[name="rate[]"]').off('input').on('input', function() {
+                    var $row = $(this).closest('tr');
+                    var qty = parseFloat($row.find('input[name="quantity[]"]').val()) || 0;
+                    var rate = parseFloat($row.find('input[name="rate[]"]').val()) || 0;
+                    $row.find('input[name="amount[]"]').val((qty * rate).toFixed(2));
+                });
+                
+            },
+            error: function (xhr, status, error) {
+                alert('Error loading indent details. Please try again.');
+            }
+        });
+    });
+});
+</script>
+{% include "pages/modal/procurement/indent_creation_modal.html" %}
+{% endblock %}

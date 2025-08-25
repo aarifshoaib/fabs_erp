@@ -432,4 +432,28 @@ class BudgetEntry(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     modified_on = models.DateTimeField(auto_now=True)
 
+class IndentMaster(models.Model):
+    id = models.AutoField(primary_key=True)
+    comp_code = models.CharField(max_length=10)
+    job_no = models.CharField(max_length=100)
+    client_name = models.CharField(max_length=200)
+    customer_id = models.CharField(max_length=100)
+    job_name = models.CharField(max_length=200)
+    location = models.CharField(max_length=200, blank=True, null=True)
+    section = models.CharField(max_length=100, blank=True, null=True)
+    indent_no = models.CharField(max_length=100)
+    indent_date = models.DateField(blank=True, null=True)
+    requested_by = models.CharField(max_length=100)
+    created_on = models.DateTimeField(auto_now_add=True)
 
+class IndentItem(models.Model):
+    id = models.AutoField(primary_key=True)
+    comp_code = models.CharField(max_length=10)
+    indent = models.CharField(max_length=100)
+    budget_code = models.CharField(max_length=100)
+    item_code = models.CharField(max_length=100)
+    unit = models.CharField(max_length=50)
+    quantity = models.DecimalField(max_digits=12, decimal_places=2)
+    rate = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    remarks = models.CharField(max_length=255, blank=True, null=True)

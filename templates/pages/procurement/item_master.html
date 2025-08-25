@@ -327,6 +327,7 @@
                 type: "GET",
                 data: { 'item_id': itemId },
                 success: function (response) {
+                    console.log("Response:", response);
                     // Populate the edit form with the response data
                     $("#item_id").val(response.data.id);
                     $("#item_code").val(response.data.item_code);
