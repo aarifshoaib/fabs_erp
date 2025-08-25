@@ -7624,6 +7624,272 @@ def employee_pp_delete(request):
             return JsonResponse({'status': 'error', 'message': 'Not found'})
     return JsonResponse({'status': 'error', 'message': 'Invalid request'})
 
+# Employee PP Renewal Views
+def employee_pp_renewal_list(request):
+    set_comp_code(request)
+    keyword = request.GET.get('keyword', '')
+    entries = EmployeePPRenewalDetails.objects.filter(comp_code=COMP_CODE)
+    if keyword:
+        entries = entries.filter(
+            Q(name__icontains=keyword) |
+            Q(pp_number__icontains=keyword) |
+            Q(emp_code__icontains=keyword) |
+            Q(in_outside__icontains=keyword) |
+            Q(status__icontains=keyword) |
+            Q(sub_status__icontains=keyword) |
+            Q(work_location__icontains=keyword) |
+            Q(designation__icontains=keyword) |
+            Q(nationality__icontains=keyword) |
+            Q(pp_control__icontains=keyword) |
+            Q(no_of_days__icontains=keyword) |
+            Q(medical__icontains=keyword) |
+            Q(medical_result_date__icontains=keyword) |
+            Q(remedical_result_date__icontains=keyword) |
+            Q(eid__icontains=keyword) |
+            Q(rp_stamping__icontains=keyword) |
+            Q(fine_amount__icontains=keyword) |
+            Q(tawjeeh_payment__icontains=keyword) |
+            Q(tawjeeh_class__icontains=keyword) |
+            Q(iloe_status__icontains=keyword)
+        )
+    paginator = Paginator(entries, PAGINATION_SIZE)
+    page = request.GET.get('page')
+    try:
+        entries = paginator.page(page)
+    except PageNotAnInteger:
+        entries = paginator.page(1)
+    except EmptyPage:
+        entries = paginator.page(paginator.num_pages)
+    context = {
+        'entries': entries,
+        'result_cnt': entries.paginator.count if entries else 0,
+        'keyword': keyword
+    }
+    return render(request, 'pages/payroll/employee_pp/employee_pp_renewal_list.html', context)
+
+def employee_pp_renewal_create(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        # Create new record
+        employee_pp = EmployeePPRenewalDetails.objects.create(
+            pp_number=request.POST.get('pp_number'),
+            comp_code=COMP_CODE,
+            emp_code=request.POST.get('emp_code'),
+            name=request.POST.get('name'),
+            in_outside=request.POST.get('in_outside'),
+            status=request.POST.get('status'),
+            sub_status=request.POST.get('sub_status'),
+            work_location=request.POST.get('work_location'),
+            doj=request.POST.get('doj') or None,
+            gender=request.POST.get('gender'),
+            designation=request.POST.get('designation'),
+            nationality=request.POST.get('nationality'),
+            pp_control=request.POST.get('pp_control'),
+            date_of_landing=request.POST.get('date_of_landing') or None,
+            medical=request.POST.get('medical'),
+            medical_result_date=request.POST.get('medical_result_date') or None,
+            remedical_result_date=request.POST.get('remedical_result_date') or None,
+            eid=request.POST.get('eid'),
+            eid_date=request.POST.get('eid_date') or None,
+            eid_remarks=request.POST.get('eid_remarks'),
+            rp_stamping=request.POST.get('rp_stamping'),
+            rp_stamping_date=request.POST.get('rp_stamping_date') or None,
+            fine_amount=request.POST.get('fine_amount') or None,
+            tawjeeh_payment=request.POST.get('tawjeeh_payment'),
+            tawjeeh_class=request.POST.get('tawjeeh_class'),
+            tawjeeh_date=request.POST.get('tawjeeh_date') or None,
+            iloe_status=request.POST.get('iloe_status'),
+            iloe_date=request.POST.get('iloe_date') or None,
+            insurance_status=request.POST.get('insurance_status'),
+            insurance_card_number=request.POST.get('insurance_card_number'),
+            insurance_expiry_date=request.POST.get('insurance_expiry_date') or None,
+            created_by=request.user.username,
+            created_on=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        )
+        
+        # Handle document uploads with new multi-entry structure
+        document_types = request.POST.getlist('document_name[]')
+        document_files = request.FILES.getlist('document_file[]')
+        
+        # Use zip_longest to handle cases where there might be more types than files or vice versa
+        from itertools import zip_longest
+        for doc_type, doc_file in zip_longest(document_types, document_files, fillvalue=None):
+            if doc_type and doc_file:  # Only create if both type and file are provided
+                EmployeePPRenewalDocuments.objects.create(
+                    comp_code=COMP_CODE,
+                    employee_pp_renewal_id=employee_pp.id,
+                    document_name=doc_type,
+                    document_file=doc_file
+                )
+        
+        return redirect('employee_pp_renewal_list')
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
+def employee_pp_renewal_edit(request):
+    set_comp_code(request)
+    # Return JSON for the given id
+    id = request.GET.get('id')
+    try:
+        obj = EmployeePPRenewalDetails.objects.get(id=id, comp_code=COMP_CODE)
+        
+        # Get documents for this employee PP renewal
+        pp_documents = EmployeePPRenewalDocuments.objects.filter(comp_code=COMP_CODE, employee_pp_renewal_id=id)
+        documents_data = []
+        for document in pp_documents:
+            documents_data.append({
+                'document_id': document.document_id,
+                'document_name': document.document_name,
+                'document_url': document.document_file.url if document.document_file else None
+            })
+        
+        data = {
+            'id': obj.id,
+            'pp_number': obj.pp_number,
+            'emp_code': obj.emp_code,
+            'name': obj.name,
+            'in_outside': obj.in_outside,
+            'status': obj.status,
+            'sub_status': obj.sub_status,
+            'work_location': obj.work_location,
+            'doj': obj.doj,
+            'gender': obj.gender,
+            'designation': obj.designation,
+            'nationality': obj.nationality,
+            'pp_control': obj.pp_control,
+            'date_of_landing': obj.date_of_landing,
+            'no_of_days': (60 - (date.today() - obj.date_of_landing).days) if obj.date_of_landing else None,
+            'medical': obj.medical,
+            'medical_result_date': obj.medical_result_date,
+            'remedical_result_date': obj.remedical_result_date,
+            'eid': obj.eid,
+            'eid_date': obj.eid_date,
+            'eid_remarks': obj.eid_remarks,
+            'rp_stamping': obj.rp_stamping,
+            'rp_stamping_date': obj.rp_stamping_date,
+            'fine_amount': obj.fine_amount,
+            'tawjeeh_payment': obj.tawjeeh_payment,
+            'tawjeeh_class': obj.tawjeeh_class,
+            'tawjeeh_date': obj.tawjeeh_date,
+            'iloe_status': obj.iloe_status,
+            'iloe_date': obj.iloe_date,
+            'iloe_number': obj.iloe_number,
+            'iloe_inception_date': obj.iloe_inception_date,
+            'iloe_expiry_date': obj.iloe_expiry_date,
+            'insurance_status': obj.insurance_status,
+            'insurance_card_number': obj.insurance_card_number,
+            'insurance_expiry_date': obj.insurance_expiry_date,
+            'pp_documents': documents_data,
+        }
+        # Convert dates to string if needed
+        for k in ['doj', 'medical_result_date', 'remedical_result_date', 'iloe_date', 'tawjeeh_date', 'rp_stamping_date', 'eid_date', 'insurance_expiry_date']:
+            if data[k] and hasattr(data[k], 'strftime'):
+                data[k] = data[k].strftime('%Y-%m-%d')
+        return JsonResponse(data)
+    except EmployeePPRenewalDetails.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Not found'})
+
+@csrf_exempt
+def employee_pp_renewal_update(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        id = request.POST.get('id')
+        try:
+            obj = EmployeePPRenewalDetails.objects.get(id=id, comp_code=COMP_CODE)
+            obj.pp_number = request.POST.get('pp_number')
+            obj.emp_code = request.POST.get('emp_code')
+            obj.name = request.POST.get('name')
+            obj.in_outside = request.POST.get('in_outside')
+            obj.status = request.POST.get('status')
+            obj.sub_status = request.POST.get('sub_status')
+            obj.work_location = request.POST.get('work_location')
+            obj.doj = request.POST.get('doj') or None
+            obj.gender = request.POST.get('gender')
+            obj.designation = request.POST.get('designation')
+            obj.nationality = request.POST.get('nationality')
+            obj.pp_control = request.POST.get('pp_control')
+            obj.date_of_landing = request.POST.get('date_of_landing') or None
+            obj.fine_amount = request.POST.get('fine_amount') or None
+            
+            # Handle all the colon-separated fields
+            fields_to_update = [
+                'insurance_status', 'insurance_card_number', 'insurance_expiry_date',
+                'iloe_number', 'iloe_inception_date', 'iloe_expiry_date',
+                'medical', 'medical_result_date', 'remedical_result_date',
+                'eid', 'rp_stamping', 'tawjeeh_payment', 'tawjeeh_class',
+                'iloe_status', 'iloe_date', 'tawjeeh_date', 'rp_stamping_date',
+                'eid_date', 'eid_remarks'
+            ]
+            
+            for field in fields_to_update:
+                value = request.POST.get(field)
+                if value:
+                    current_value = getattr(obj, field) or ""
+                    if current_value:
+                        setattr(obj, field, current_value + ": " + value)
+                    else:
+                        setattr(obj, field, value)
+            
+            obj.modified_by = request.user.username
+            obj.modified_on = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            obj.save()
+            
+            # Handle document deletions
+            documents_to_remove = request.POST.get('documents_to_remove')
+            if documents_to_remove:
+                document_ids_to_remove = documents_to_remove.split(',')
+                EmployeePPRenewalDocuments.objects.filter(
+                    comp_code=COMP_CODE,
+                    employee_pp_renewal_id=obj.id,
+                    document_id__in=document_ids_to_remove
+                ).delete()
+            
+            # Handle document uploads with new multi-entry structure
+            document_types = request.POST.getlist('document_name[]')
+            document_files = request.FILES.getlist('document_file[]')
+            document_ids = request.POST.getlist('document_id[]')
+            
+            # Use zip_longest to handle cases where there might be more types than files or vice versa
+            from itertools import zip_longest
+            for doc_type, doc_file, doc_id in zip_longest(document_types, document_files, document_ids, fillvalue=None):
+                if doc_type and doc_file:  # Only create if both type and file are provided
+                    if doc_id:  # Update existing document
+                        try:
+                            existing_doc = EmployeePPRenewalDocuments.objects.get(
+                                comp_code=COMP_CODE,
+                                employee_pp_renewal_id=obj.id,
+                                document_id=doc_id
+                            )
+                            existing_doc.document_name = doc_type
+                            existing_doc.document_file = doc_file
+                            existing_doc.save()
+                        except EmployeePPRenewalDocuments.DoesNotExist:
+                            pass
+                    else:  # Create new document
+                        EmployeePPRenewalDocuments.objects.create(
+                            comp_code=COMP_CODE,
+                            employee_pp_renewal_id=obj.id,
+                            document_name=doc_type,
+                            document_file=doc_file
+                        )
+            
+            return redirect('employee_pp_renewal_list')
+        except EmployeePPRenewalDetails.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Not found'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
+@csrf_exempt
+def employee_pp_renewal_delete(request):
+    set_comp_code(request)
+    if request.method == 'POST':
+        id = request.POST.get('id')
+        try:
+            obj = EmployeePPRenewalDetails.objects.get(id=id, comp_code=COMP_CODE)
+            obj.delete()
+            return JsonResponse({'status': 'success'})
+        except EmployeePPRenewalDetails.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Not found'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
 @csrf_exempt
 def get_employee_details_by_code(request):
     emp_code = request.GET.get('emp_code')

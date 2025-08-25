@@ -1,0 +1,346 @@
+{% load static %}
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvas_add" style="width: 1200px !important;">
+    <div class="offcanvas-header border-bottom">
+        <h4>Indent Creation</h4>
+        <button type="button"
+            class="btn-close custom-btn-close border p-1 me-0 d-flex align-items-center justify-content-center rounded-circle"
+            data-bs-dismiss="offcanvas" aria-label="Close">
+            <i class="ti ti-x"></i>
+        </button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="indentForm" method="post" action="{% url 'indent_creation_add' %}" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <!-- Header Details (No Accordion) -->
+            <div class="row mb-3">
+                <div class="col-md-3 mb-3">
+                    <label>Job No</label>
+                    <select name="job_no" class="form-control select2">
+                        <option value="">Select Job No</option>
+                        {% for job in job_codes %}
+                            <option value="{{ job.prj_code }}">{{ job.prj_code }} - {{ job.prj_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <!-- <input type="text" name="job_no" class="form-control" required> -->
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label>Client Name</label>
+                    <input type="text" name="client_name" class="form-control">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label>Customer ID</label>
+                    <input type="text" name="customer_id" class="form-control">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label>Job Name</label>
+                    <input type="text" name="job_name" class="form-control">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label>Location</label>
+                    <input type="text" name="location" class="form-control">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label>Section</label>
+                    <input type="text" name="section" class="form-control">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label>Indent No</label>
+                    <input type="text" name="indent_no" class="form-control" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label>Indent Date</label>
+                    <input type="date" name="indent_date" class="form-control">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label>Requested By</label>
+                    <input type="text" name="requested_by" class="form-control">
+                </div>
+            </div>
+            <!-- Indent Items Accordion -->
+            <div class="accordion mt-4" id="indentItemsAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingItems">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseItems" aria-expanded="true" aria-controls="collapseItems">
+                            Indent Items
+                        </button>
+                    </h2>
+                    <div id="collapseItems" class="accordion-collapse collapse show" aria-labelledby="headingItems" data-bs-parent="#indentItemsAccordion">
+                        <div class="accordion-body">
+                            <div class="d-flex justify-content-end mb-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="addIndentRowBtn">
+                                    <i class="ti ti-square-rounded-plus me-1"></i>Add Item
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="indentItemsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Budget Code</th>
+                                            <th>Item Code</th>
+                                            <th>Unit</th>
+                                            <th>Quantity</th>
+                                            <th>Rate</th>
+                                            <th>Amount</th>
+                                            <th>Additional Remarks</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                <select name="budget_code[]" class="form-control budget-code-select" required>
+                                                    <option value="">Select Budget Code</option>
+                                                    {% for budget in budget_codes %}
+                                                        <option value="{{ budget.id }}">{{ budget.job_code }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select name="item_code[]" class="form-control item-code-select" required>
+                                                    <option value="">Select Item Code</option>
+                                                    {% for item in item_codes %}
+                                                        <option value="{{ item.item_code }}">{{ item.item_code }} - {{ item.item_description }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </td>
+                                            <td><input type="text" name="unit[]" class="form-control" required></td>
+                                            <td><input type="number" name="quantity[]" class="form-control" min="0" step="0.01" required></td>
+                                            <td><input type="number" name="rate[]" class="form-control" min="0" step="0.01" required></td>
+                                            <td><input type="number" name="amount[]" class="form-control" min="0" step="0.01" required></td>
+                                            <td><input type="text" name="remarks[]" class="form-control"></td>
+                                            <td>
+                                                <button type="button" class="btn btn-danger remove-indent-entry">Remove</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-end mt-4">
+                <button type="button" data-bs-dismiss="offcanvas" class="btn btn-light me-2">Cancel</button>
+                <button type="submit" class="btn btn-primary create-btn">Submit Indent</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvas_edit" style="width: 1200px !important;">
+    <div class="offcanvas-header border-bottom">
+        <h4>Edit Indent</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close">
+            <i class="ti ti-x"></i>
+        </button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="editIndentForm" method="post" action="{% url 'indent_creation_edit' %}">
+            {% csrf_token %}
+            <input type="hidden" name="indent_id" id="edit_indent_id">
+            <div class="row mb-3">
+                <div class="col-md-3 mb-3"><label>Job No</label>
+                    <select name="job_no" class="form-control select2" id="edit_job_no">
+                        <option value="">Select Job No</option>
+                        {% for job in job_codes %}
+                            <option value="{{ job.prj_code }}">{{ job.prj_code }} - {{ job.prj_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <!-- <input type="text" name="job_no" id="edit_job_no" class="form-control" required> -->
+                </div>
+                <div class="col-md-3 mb-3"><label>Client Name</label><input type="text" name="client_name" id="edit_client_name" class="form-control"></div>
+                <div class="col-md-3 mb-3"><label>Customer ID</label><input type="text" name="customer_id" id="edit_customer_id" class="form-control"></div>
+                <div class="col-md-3 mb-3"><label>Job Name</label><input type="text" name="job_name" id="edit_job_name" class="form-control"></div>
+                <div class="col-md-3 mb-3"><label>Location</label><input type="text" name="location" id="edit_location" class="form-control"></div>
+                <div class="col-md-3 mb-3"><label>Section</label><input type="text" name="section" id="edit_section" class="form-control"></div>
+                <div class="col-md-3 mb-3"><label>Indent No</label><input type="text" name="indent_no" id="edit_indent_no" class="form-control" required></div>
+                <div class="col-md-3 mb-3"><label>Indent Date</label><input type="date" name="indent_date" id="edit_indent_date" class="form-control"></div>
+                <div class="col-md-3 mb-3"><label>Requested By</label><input type="text" name="requested_by" id="edit_requested_by" class="form-control"></div>
+            </div>
+            <div class="accordion mt-4" id="editIndentItemsAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="editHeadingItems">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#editCollapseItems" aria-expanded="true" aria-controls="editCollapseItems">
+                            Indent Items
+                        </button>
+                    </h2>
+                    <div id="editCollapseItems" class="accordion-collapse collapse show" aria-labelledby="editHeadingItems" data-bs-parent="#editIndentItemsAccordion">
+                        <div class="accordion-body">
+                            <div class="d-flex justify-content-end mb-2">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="editAddIndentRowBtn">
+                                    <i class="ti ti-square-rounded-plus me-1"></i>Add Item
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="editIndentItemsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Budget Code</th>
+                                            <th>Item Code</th>
+                                            <th>Unit</th>
+                                            <th>Quantity</th>
+                                            <th>Rate</th>
+                                            <th>Amount</th>
+                                            <th>Additional Remarks</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- JS will populate rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-end mt-4">
+                <button type="button" data-bs-dismiss="offcanvas" class="btn btn-light me-2">Cancel</button>
+                <button type="submit" class="btn btn-primary create-btn">Update Indent</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+$(document).ready(function() {
+    // Add entry row for indent items (Add Modal)
+    $('#addIndentRowBtn').on('click', function() {
+        $('#indentItemsTable tbody').append(`
+            <tr>
+                <td>
+                    <select name="budget_code[]" class="form-control budget-code-select" required>
+                        <option value="">Select Budget Code</option>
+                        {% for budget in budget_codes %}
+                            <option value="{{ budget.id }}">{{ budget.job_code }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="item_code[]" class="form-control item-code-select" required>
+                        <option value="">Select Item Code</option>
+                        {% for item in item_codes %}
+                            <option value="{{ item.item_code }}">{{ item.item_code }} - {{ item.item_description }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="text" name="unit[]" class="form-control" required></td>
+                <td><input type="number" name="quantity[]" class="form-control" min="0" step="0.01" required></td>
+                <td><input type="number" name="rate[]" class="form-control" min="0" step="0.01" required></td>
+                <td><input type="number" name="amount[]" class="form-control" min="0" step="0.01" required></td>
+                <td><input type="text" name="remarks[]" class="form-control"></td>
+                <td>
+                    <button type="button" class="btn btn-danger remove-indent-entry">Remove</button>
+                </td>
+            </tr>
+        `);
+    });
+
+    // Add entry row for indent items (Edit Modal)
+    $('#editAddIndentRowBtn').on('click', function() {
+        $('#editIndentItemsTable tbody').append(`
+            <tr>
+                <td>
+                    <select name="budget_code[]" class="form-control budget-code-select" required>
+                        <option value="">Select Budget Code</option>
+                        {% for budget in budget_codes %}
+                            <option value="{{ budget.id }}">{{ budget.job_code }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="item_code[]" class="form-control item-code-select" required>
+                        <option value="">Select Item Code</option>
+                        {% for item in item_codes %}
+                            <option value="{{ item.item_code }}">{{ item.item_code }} - {{ item.item_description }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="text" name="unit[]" class="form-control" required></td>
+                <td><input type="number" name="quantity[]" class="form-control" min="0" step="0.01" required></td>
+                <td><input type="number" name="rate[]" class="form-control" min="0" step="0.01" required></td>
+                <td><input type="number" name="amount[]" class="form-control" min="0" step="0.01" required></td>
+                <td><input type="text" name="remarks[]" class="form-control"></td>
+                <td>
+                    <button type="button" class="btn btn-danger remove-indent-entry">Remove</button>
+                </td>
+            </tr>
+        `);
+    });
+
+    // Remove entry row (both modals)
+    $(document).on('click', '.remove-indent-entry', function() {
+        $(this).closest('tr').remove();
+    });
+
+    // On Job No change in Add modal
+    $('select[name="job_no"]').on('change', function() {
+        var jobCode = $(this).val();
+        if (jobCode) {
+            $.ajax({
+                url: "{% url 'get_job_details' %}",
+                type: "GET",
+                data: { job_code: jobCode },
+                success: function(response) {
+                    $('input[name="client_name"]').val(response.client_name || '');
+                    $('input[name="customer_id"]').val(response.customer_id || '');
+                    $('input[name="job_name"]').val(response.job_name || '');
+                    $('input[name="location"]').val(response.location || '');
+                    $('input[name="section"]').val(response.section || '');
+                }
+            });
+        } else {
+            $('input[name="client_name"], input[name="customer_id"], input[name="job_name"], input[name="location"], input[name="section"]').val('');
+        }
+    });
+
+    // On Job No change in Edit modal
+    $('#edit_job_no').on('change', function() {
+        var jobCode = $(this).val();
+        if (jobCode) {
+            $.ajax({
+                url: "{% url 'get_job_details' %}",
+                type: "GET",
+                data: { job_code: jobCode },
+                success: function(response) {
+                    $('#edit_client_name').val(response.client_name || '');
+                    $('#edit_customer_id').val(response.customer_id || '');
+                    $('#edit_job_name').val(response.job_name || '');
+                    $('#edit_location').val(response.location || '');
+                    $('#edit_section').val(response.section || '');
+                }
+            });
+        } else {
+            $('#edit_client_name, #edit_customer_id, #edit_job_name, #edit_location, #edit_section').val('');
+        }
+    });
+
+    // Fetch unit/rate when item code selected (both modals)
+    $(document).on('change', '.item-code-select', function() {
+        var $row = $(this).closest('tr');
+        var itemCode = $(this).val();
+        if (itemCode) {
+            $.ajax({
+                url: "{% url 'get_item_details' %}",
+                type: "GET",
+                data: { item_code: itemCode },
+                success: function(response) {
+                    $row.find('input[name="unit[]"]').val(response.uom || '');
+                    $row.find('input[name="rate[]"]').val(response.rate || '');
+                    $row.find('input[name="quantity[]"]').val('');
+                    $row.find('input[name="amount[]"]').val('');
+                }
+            });
+        } else {
+            $row.find('input[name="unit[]"], input[name="rate[]"], input[name="quantity[]"], input[name="amount[]"]').val('');
+        }
+    });
+
+    // Calculate amount when quantity or rate changes (both modals)
+    $(document).on('input', 'input[name="quantity[]"], input[name="rate[]"]', function() {
+        var $row = $(this).closest('tr');
+        var qty = parseFloat($row.find('input[name="quantity[]"]').val()) || 0;
+        var rate = parseFloat($row.find('input[name="rate[]"]').val()) || 0;
+        $row.find('input[name="amount[]"]').val((qty * rate).toFixed(2));
+    });
+});
+</script>
