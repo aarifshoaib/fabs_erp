@@ -344,9 +344,10 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     });
 
-    // Set min date for start date inputs
-    var today = new Date().toISOString().split('T')[0];
-    $('#add_start_date, #edit_start_date').attr('min', today);
+    // Set min date for start date inputs to start of current year
+    var currentYear = new Date().getFullYear();
+    var startOfYear = currentYear + '-01-01';
+    $('#add_start_date, #edit_start_date').attr('min', startOfYear);
 
     // Handle start date change
     $('#add_start_date, #edit_start_date').change(function() {
@@ -483,10 +484,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         $('#edit_document_preview_btn').attr('href', documentUrl);
                         $('#edit_document_download').attr('href', documentUrl);
                         
-                        // Debug log
-                        console.log('Document URL:', documentUrl);
-                        console.log('Preview Button:', $('#edit_document_preview_btn').attr('href'));
-                        console.log('Download Button:', $('#edit_document_download').attr('href'));
                     } else {
                         $('#edit_document_preview').hide();
                     }
